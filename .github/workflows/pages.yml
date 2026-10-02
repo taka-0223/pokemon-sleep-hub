@@ -29,13 +29,17 @@ jobs:
         with:
           enablement: true
 
-      - name: Rebuild v0.3 PWA package
+      - name: Prepare PWA source
         run: |
           rm -rf _site rebuilt-site.zip
           mkdir -p _site
-          cat site-v03-parts/*.b64 | tr -d '\n\r ' | base64 -d > rebuilt-site.zip
-          unzip -tq rebuilt-site.zip
-          unzip -q rebuilt-site.zip -d _site
+          if [ -f site/data.js ]; then
+            cp -a site/. _site/
+          else
+            cat site-v03-parts/*.b64 | tr -d '\n\r ' | base64 -d > rebuilt-site.zip
+            unzip -tq rebuilt-site.zip
+            unzip -q rebuilt-site.zip -d _site
+          fi
           grep -q '2026-10-02-r9' _site/data.js
 
       - name: Generate Species Role Percentiles

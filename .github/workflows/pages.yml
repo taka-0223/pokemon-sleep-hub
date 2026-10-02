@@ -29,53 +29,15 @@ jobs:
         with:
           enablement: true
 
-      - name: Prepare PWA source
+      - name: Build Species Role Percentile
+        run: python3 scripts/build_srp.py srp.js
+
+      - name: Prepare static site
         run: |
           rm -rf _site
           mkdir -p _site/icons
-          cp index.html app.js style.css data.js srp.js service-worker.js manifest.webmanifest .nojekyll _site/
-          cp -a icons/. _site/icons/
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          raw = Path("_site/data.js").read_text(encoding="utf-8")
-          data = json.loads(raw.split("=", 1)[1].strip().rstrip(";"))
-          assert data["meta"]["revision"] not in (None, "", "unknown")
-          assert len(data.get("individuals", [])) > 0
-          assert len(data.get("roles", [])) > 0
-          print("data snapshot:", data["meta"]["revision"], len(data["individuals"]), "individuals")
-          PY
-
-      - name: Generate Species Role Percentiles
-        run: |
-          git clone --depth 1 https://github.com/reimer0204/pokesle-simulator.git /tmp/pokesle-simulator
-          python3 scripts/generate-srp.py /tmp/pokesle-simulator _site/srp.js
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          path = Path("_site/srp.js")
-          raw = path.read_text(encoding="utf-8")
-          data = json.loads(raw.split("=", 1)[1].strip().rstrip(";"))
-          for groups in data["roles"].values():
-              for entries in groups.values():
-                  for item in entries:
-                      n = item.get("cohortSize", 0)
-                      rank = item.get("rank")
-                      item["topPercent"] = None if n < 2 or rank is None else round(100 * rank / n, 1)
-          by_species = {}
-          for typ, groups in data["roles"].items():
-              for role, entries in groups.items():
-                  for item in entries:
-                      species = item["species"]
-                      copy = {"role": role, **{k: v for k, v in item.items() if k != "species"}}
-                      by_species.setdefault(species, {}).setdefault(typ, []).append(copy)
-          data["bySpecies"] = by_species
-          data["meta"]["version"] = "SRP-v0.1.1"
-          data["meta"]["topPercentDefinition"] = "離散順位: rank / cohortSize × 100。比較1種のみの場合は上位%を表示しない。"
-          path.write_text("window.SRP_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
-          PY
-          grep -q 'SRP-v0.1.1' _site/srp.js
-          grep -q 'デンリュウ' _site/srp.js
+          cp index.html style.css app.js data.js srp.js manifest.webmanifest service-worker.js .nojekyll _site/
+          cp icons/app-icon.svg _site/icons/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -29,11 +29,13 @@ jobs:
         with:
           enablement: true
 
-      - name: Unpack PWA
+      - name: Rebuild and unpack PWA
         run: |
-          rm -rf _site
+          rm -rf _site rebuilt-site.zip
           mkdir -p _site
-          unzip -q site.zip -d _site
+          cat site-parts/*.b64 | tr -d '\n\r ' | base64 -d > rebuilt-site.zip
+          unzip -tq rebuilt-site.zip
+          unzip -q rebuilt-site.zip -d _site
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

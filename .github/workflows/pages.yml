@@ -29,13 +29,23 @@ jobs:
         with:
           enablement: true
 
-      - name: Rebuild and unpack PWA
+      - name: Rebuild v0.3 PWA
         run: |
-          rm -rf _site rebuilt-site.zip
+          rm -rf _site site-v0.3.zip
           mkdir -p _site
-          cat site-parts/*.b64 | tr -d '\n\r ' | base64 -d > rebuilt-site.zip
-          unzip -tq rebuilt-site.zip
-          unzip -q rebuilt-site.zip -d _site
+          cat site-v03-parts/*.b64 | tr -d '\n\r ' | base64 -d > site-v0.3.zip
+          unzip -tq site-v0.3.zip
+          unzip -q site-v0.3.zip -d _site
+
+      - name: Fetch simulator source
+        run: |
+          git clone --depth=1 https://github.com/reimer0204/pokesle-simulator.git vendor/pokesle-simulator
+
+      - name: Generate Species Role Percentile
+        run: |
+          python _site/scripts/generate-srp.py vendor/pokesle-simulator _site/srp.js
+          test -s _site/srp.js
+          head -c 120 _site/srp.js
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -44,6 +44,19 @@ jobs:
       - name: Generate Species Role Percentile
         run: |
           python _site/scripts/generate-srp.py vendor/pokesle-simulator _site/srp.js
+          python - <<'PY'
+          import json, re
+          from pathlib import Path
+          p = Path("_site/srp.js")
+          s = p.read_text(encoding="utf-8")
+          data = json.loads(re.sub(r"^window\\.SRP_DATA\\s*=\\s*", "", s).rstrip().rstrip(";"))
+          for groups in data["roles"].values():
+              for entries in groups.values():
+                  for e in entries:
+                      n = e.get("cohortSize") or 1
+                      e["topPercent"] = round(100 * e["rank"] / n, 1)
+          p.write_text("window.SRP_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
+          PY
           test -s _site/srp.js
           head -c 120 _site/srp.js
 

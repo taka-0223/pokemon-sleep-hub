@@ -29,36 +29,21 @@ jobs:
         with:
           enablement: true
 
-      - name: Rebuild v0.3 PWA
+      - name: Rebuild v0.3 PWA package
         run: |
-          rm -rf _site site-v0.3.zip
+          rm -rf _site rebuilt-site.zip
           mkdir -p _site
-          cat site-v03-parts/*.b64 | tr -d '\n\r ' | base64 -d > site-v0.3.zip
-          unzip -tq site-v0.3.zip
-          unzip -q site-v0.3.zip -d _site
+          cat site-v03-parts/*.b64 | tr -d '\n\r ' | base64 -d > rebuilt-site.zip
+          unzip -tq rebuilt-site.zip
+          unzip -q rebuilt-site.zip -d _site
+          grep -q '2026-10-02-r9' _site/data.js
 
-      - name: Fetch simulator source
+      - name: Generate Species Role Percentiles
         run: |
-          git clone --depth=1 https://github.com/reimer0204/pokesle-simulator.git vendor/pokesle-simulator
-
-      - name: Generate Species Role Percentile
-        run: |
-          python _site/scripts/generate-srp.py vendor/pokesle-simulator _site/srp.js
-          python - <<'PY'
-          import json, re
-          from pathlib import Path
-          p = Path("_site/srp.js")
-          s = p.read_text(encoding="utf-8")
-          data = json.loads(re.sub(r"^window\\.SRP_DATA\\s*=\\s*", "", s).rstrip().rstrip(";"))
-          for groups in data["roles"].values():
-              for entries in groups.values():
-                  for e in entries:
-                      n = e.get("cohortSize") or 1
-                      e["topPercent"] = round(100 * e["rank"] / n, 1)
-          p.write_text("window.SRP_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
-          PY
-          test -s _site/srp.js
-          head -c 120 _site/srp.js
+          git clone --depth 1 https://github.com/reimer0204/pokesle-simulator.git /tmp/pokesle-simulator
+          python3 _site/scripts/generate-srp.py /tmp/pokesle-simulator _site/srp.js
+          grep -q 'SRP-v0.1' _site/srp.js
+          grep -q 'デンリュウ' _site/srp.js
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

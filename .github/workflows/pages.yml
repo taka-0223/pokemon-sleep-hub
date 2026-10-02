@@ -54,6 +54,14 @@ jobs:
                       n = item.get("cohortSize", 0)
                       rank = item.get("rank")
                       item["topPercent"] = None if n < 2 or rank is None else round(100 * rank / n, 1)
+          by_species = {}
+          for typ, groups in data["roles"].items():
+              for role, entries in groups.items():
+                  for item in entries:
+                      species = item["species"]
+                      copy = {"role": role, **{k: v for k, v in item.items() if k != "species"}}
+                      by_species.setdefault(species, {}).setdefault(typ, []).append(copy)
+          data["bySpecies"] = by_species
           data["meta"]["version"] = "SRP-v0.1.1"
           data["meta"]["topPercentDefinition"] = "離散順位: rank / cohortSize × 100。比較1種のみの場合は上位%を表示しない。"
           path.write_text("window.SRP_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")

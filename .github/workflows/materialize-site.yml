@@ -21,52 +21,66 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Materialize site directory once
+      - name: Ensure site source and sync runtime to repository root
         run: |
-          if [ -f site/data.js ]; then
-            echo "site/ already materialized; nothing to do."
-            exit 0
+          if [ ! -f site/data.js ]; then
+            rm -rf site rebuilt-site.zip
+            mkdir -p site
+            cat site-v03-parts/*.b64 | tr -d '\n\r ' | base64 -d > rebuilt-site.zip
+            unzip -tq rebuilt-site.zip
+            unzip -q rebuilt-site.zip -d site
+
+            git clone --depth 1 https://github.com/reimer0204/pokesle-simulator.git /tmp/pokesle-simulator
+            python3 site/scripts/generate-srp.py /tmp/pokesle-simulator site/srp.js
+
+            python3 - <<'PY'
+            import json
+            from pathlib import Path
+            path = Path("site/srp.js")
+            raw = path.read_text(encoding="utf-8")
+            data = json.loads(raw.split("=", 1)[1].strip().rstrip(";"))
+            for groups in data["roles"].values():
+                for entries in groups.values():
+                    for item in entries:
+                        n = item.get("cohortSize", 0)
+                        rank = item.get("rank")
+                        item["topPercent"] = None if n < 2 or rank is None else round(100 * rank / n, 1)
+            by_species = {}
+            for typ, groups in data["roles"].items():
+                for role, entries in groups.items():
+                    for item in entries:
+                        species = item["species"]
+                        copy = {"role": role, **{k: v for k, v in item.items() if k != "species"}}
+                        by_species.setdefault(species, {}).setdefault(typ, []).append(copy)
+            data["bySpecies"] = by_species
+            data["meta"]["version"] = "SRP-v0.1.1"
+            data["meta"]["topPercentDefinition"] = "離散順位: rank / cohortSize × 100。比較1種のみの場合は上位%を表示しない。"
+            path.write_text("window.SRP_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
+            PY
           fi
-
-          rm -rf site rebuilt-site.zip
-          mkdir -p site
-          cat site-v03-parts/*.b64 | tr -d '\n\r ' | base64 -d > rebuilt-site.zip
-          unzip -tq rebuilt-site.zip
-          unzip -q rebuilt-site.zip -d site
-
-          git clone --depth 1 https://github.com/reimer0204/pokesle-simulator.git /tmp/pokesle-simulator
-          python3 site/scripts/generate-srp.py /tmp/pokesle-simulator site/srp.js
-
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          path = Path("site/srp.js")
-          raw = path.read_text(encoding="utf-8")
-          data = json.loads(raw.split("=", 1)[1].strip().rstrip(";"))
-          for groups in data["roles"].values():
-              for entries in groups.values():
-                  for item in entries:
-                      n = item.get("cohortSize", 0)
-                      rank = item.get("rank")
-                      item["topPercent"] = None if n < 2 or rank is None else round(100 * rank / n, 1)
-          by_species = {}
-          for typ, groups in data["roles"].items():
-              for role, entries in groups.items():
-                  for item in entries:
-                      species = item["species"]
-                      copy = {"role": role, **{k: v for k, v in item.items() if k != "species"}}
-                      by_species.setdefault(species, {}).setdefault(typ, []).append(copy)
-          data["bySpecies"] = by_species
-          data["meta"]["version"] = "SRP-v0.1.1"
-          data["meta"]["topPercentDefinition"] = "離散順位: rank / cohortSize × 100。比較1種のみの場合は上位%を表示しない。"
-          path.write_text("window.SRP_DATA = " + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
-          PY
 
           grep -q '2026-10-02-r9' site/data.js
           grep -q 'SRP-v0.1.1' site/srp.js
 
+          cp site/index.html ./index.html
+          cp site/app.js ./app.js
+          cp site/style.css ./style.css
+          cp site/data.js ./data.js
+          cp site/srp.js ./srp.js
+          cp site/service-worker.js ./service-worker.js
+          cp site/manifest.webmanifest ./manifest.webmanifest
+          cp site/.nojekyll ./.nojekyll
+          rm -rf icons scripts config
+          cp -a site/icons ./icons
+          cp -a site/scripts ./scripts
+          cp -a site/config ./config
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add site
-          git commit -m "Materialize v0.3 PWA source"
+          git add index.html app.js style.css data.js srp.js service-worker.js manifest.webmanifest .nojekyll icons scripts config site
+          if git diff --cached --quiet; then
+            echo "Root runtime already synchronized."
+            exit 0
+          fi
+          git commit -m "Sync v0.3 PWA runtime to repository root"
           git push origin HEAD:main

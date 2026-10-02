@@ -35,7 +35,16 @@ jobs:
           mkdir -p _site/icons
           cp index.html app.js style.css data.js srp.js service-worker.js manifest.webmanifest .nojekyll _site/
           cp -a icons/. _site/icons/
-          grep -q '2026-10-02-r9' _site/data.js
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          raw = Path("_site/data.js").read_text(encoding="utf-8")
+          data = json.loads(raw.split("=", 1)[1].strip().rstrip(";"))
+          assert data["meta"]["revision"] not in (None, "", "unknown")
+          assert len(data.get("individuals", [])) > 0
+          assert len(data.get("roles", [])) > 0
+          print("data snapshot:", data["meta"]["revision"], len(data["individuals"]), "individuals")
+          PY
 
       - name: Generate Species Role Percentiles
         run: |

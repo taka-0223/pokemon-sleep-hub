@@ -5,13 +5,6 @@ const esc=s=>String(s==null?"—":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&l
 const views=["home","roster","refine","roles","plan"];
 const qualityOrder={"S":0,"A+":1,"A":2,"B":3,"C":4,"特殊":5};
 let suppressClick=false;
-const captureFamily={
-  gardevoir:"ラルトス系",xatu:"ネイティ系",feraligatr:"ワニノコ系",empoleon:"ポッチャマ系",
-  dodrio:"ドードー系",typhlosion:"ヒノアラシ系",mewtwo:"ミュウツー",dedenne:"デデンネ",
-  bewear:"ヌイコグマ系",gengar:"ゴース系",charizard:"ヒトカゲ系",blastoise:"ゼニガメ系",
-  skeledirge:"ホゲータ系",meowscarada:"ニャオハ系",ampharos:"メリープ系",clodsire:"パルデアウパー系",
-  tyranitar:"ヨーギラス系",ribombee:"アブリー系",gourgeist_giga:"バケッチャ系",ditto:"メタモン",magnezone:"コイル系"
-};
 const foodTarget={milk_specialist:"モーモーミルク",cacao_specialist:"リラックスカカオ",apple:"とくせんリンゴ",potato:"ほっこりポテト",ginger:"あったかジンジャー",honey:"あまいミツ",pumpkin:"ずっしりカボチャ",oil_specialist:"ピュアなオイル",corn:"ワカクサコーン",mushroom:"あじわいキノコ",meat:"マメミート",egg_specialist:"とくせんエッグ",leek_specialist:"ふといながねぎ",tomato_specialist:"あんみんトマト",herb_specialist:"げきからハーブ",soybean_specialist:"ワカクサ大豆",coffee_specialist:"めざましコーヒー",avocado_specialist:"つやつやアボカド"};
 const individualById=Object.fromEntries(D.individuals.map(p=>[p.id,p]));
 const roleById=Object.fromEntries(D.roles.map(r=>[r.id,r]));
@@ -40,46 +33,29 @@ function srpText(p){
 function qualityBadge(q){
   return '<span class="quality '+esc(q)+'">'+esc(q)+'</span>';
 }
+const targetFamily={
+  gardevoir:"ラルトス系",xatu:"ネイティ系",feraligatr:"ワニノコ系",empoleon:"ポッチャマ系",
+  dodrio:"ドードー系",typhlosion:"ヒノアラシ系",mewtwo:"ミュウツー",dedenne:"デデンネ",
+  bewear:"ヌイコグマ系",gengar:"ゴース系",charizard:"ヒトカゲ系",blastoise:"ゼニガメ系",
+  skeledirge:"ホゲータ系",meowscarada:"ニャオハ系",ampharos:"メリープ系",clodsire:"パルデアウパー系",
+  tyranitar:"ヨーギラス系",ribombee:"アブリー系",gourgeist_giga:"バケッチャ系",ditto:"メタモン",magnezone:"コイル系"
+};
+const refinePriorityOrder={高:0,中:1,低:2};
+const refineNeedOrder={不足:0,未所持:0,"副産物のみ":1,"暫定充足":2,"候補運用":2,"条件付き充足":3,"育成待ち":4,"充足予定":4,充足:5};
 function prioritySlug(p){return p==="高"?"high":p==="中"?"mid":"low";}
-function capturePriority(r){
-  if(r.search==="条件付き継続")return {label:"良個体なら",className:"conditional",rank:3};
-  if(r.priority==="高")return {label:"最優先",className:"top",rank:0};
-  if(r.priority==="中")return {label:"優先",className:"mid",rank:1};
-  return {label:"余裕があれば",className:"low",rank:2};
-}
-const needUrgency={不足:0,未所持:0,"副産物のみ":1,"暫定充足":2,"候補運用":2,"条件付き充足":3,"育成待ち":4,"充足予定":4,充足:5};
-const gapUrgency={大:0,中:1,小:2};
-function captureTargetLabel(r){
-  if(!r.upgradeTarget)return "候補種未設定";
-  return captureFamily[String(r.upgradeTarget)]||r.upgradeTargetName||String(r.upgradeTarget);
+function targetSpeciesLabel(r){
+  if(!r.upgradeTarget)return "未設定";
+  return targetFamily[String(r.upgradeTarget)]||r.upgradeTargetName||String(r.upgradeTarget);
 }
 function refiningRoles(){
   return [...D.roles]
     .filter(r=>["継続","条件付き継続"].includes(r.search)||r.need==="不足")
-    .sort((a,b)=>{
-      const pa=capturePriority(a).rank,pb=capturePriority(b).rank;
-      if(pa!==pb)return pa-pb;
-      const na=needUrgency[a.need]??9,nb=needUrgency[b.need]??9;
-      if(na!==nb)return na-nb;
-      const ga=gapUrgency[a.gap]??9,gb=gapUrgency[b.gap]??9;
-      if(ga!==gb)return ga-gb;
-      return String(a.name||"").localeCompare(String(b.name||""),"ja");
-    });
+    .sort((a,b)=>
+      (refinePriorityOrder[a.priority]??9)-(refinePriorityOrder[b.priority]??9)
+      ||(refineNeedOrder[a.need]??9)-(refineNeedOrder[b.need]??9)
+      ||String(a.name||"").localeCompare(String(b.name||""),"ja")
+    );
 }
-function captureCard(r,index){
-  const p=capturePriority(r),target=captureTargetLabel(r),missing=!r.upgradeTarget;
-  const facts=[
-    r.need?"状況 "+r.need:null,
-    r.search?"探索 "+r.search:null,
-    r.gap?"差 "+r.gap:null
-  ].filter(Boolean).map(x=>'<span>'+esc(x)+'</span>').join("");
-  return '<article class="capture-card tier-'+p.className+(missing?' target-missing':'')+'">'+
-    '<div class="capture-rank">'+(index+1)+'</div>'+
-    '<div class="capture-body"><div class="capture-name">'+esc(target)+'</div><div class="capture-role">'+esc(r.name)+'</div>'+
-    '<div class="capture-facts">'+facts+'</div><div class="capture-note">'+esc(r.note||"")+'</div></div>'+
-    '<span class="capture-tier tier-'+p.className+'">'+esc(p.label)+'</span></article>';
-}
-
 function denseRow(p){
   return '<article class="dense-row" data-id="'+esc(p.id)+'">'+
     '<div class="poke-main"><div class="poke-name">'+esc(p.name)+' <span class="poke-meta">Lv'+esc(p.level)+'</span></div><div class="poke-meta">'+esc(p.roleName)+'</div></div>'+
@@ -88,18 +64,23 @@ function denseRow(p){
     '<div><span class="cell-label">役割</span><span class="cell-value '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
   '</article>';
 }
-function compactRole(r,refine,rank){
+function compactRole(r,refine){
   const inc=individualById[r.incumbent]&&individualById[r.incumbent].name;
   const back=individualById[r.backup]&&individualById[r.backup].name;
-  let badges="";
+  const holder=inc?("主担当 "+inc):(!inc&&back?("暫定 "+back):"");
   if(refine){
-    badges='<div class="mini-badges"><span class="mini-badge">探索 '+esc(r.search)+'</span><span class="mini-badge priority-'+prioritySlug(r.priority)+'">優先 '+esc(r.priority)+'</span>';
-    if(r.upgradeTarget)badges+='<span class="mini-badge">狙う '+esc(captureTargetLabel(r))+'</span>';
-    else badges+='<span class="mini-badge target-unset">候補種 未設定</span>';
-    badges+='</div>';
+    const target=targetSpeciesLabel(r);
+    return '<article class="compact-row refine-row">'+
+      '<div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+
+      '<div class="compact-meta">'+esc(r.type)+' ・ '+esc(r.need)+(holder?' ・ '+esc(holder):'')+'</div></div>'+
+      '<span class="refine-priority priority-'+prioritySlug(r.priority)+'">優先度 '+esc(r.priority||"—")+'</span></div>'+
+      '<div class="refine-target'+(!r.upgradeTarget?' target-unset':'')+'"><span>狙う種族</span><b>'+esc(target)+'</b></div>'+
+      '<div class="compact-note">'+esc(r.note)+'</div></article>';
   }
-  const rankHtml=refine&&rank?'<span class="order-num">'+rank+'</span>':'';
-  return '<article class="compact-row"><div class="compact-top"><div><div class="compact-name">'+rankHtml+esc(r.name)+'</div><div class="compact-meta">'+esc(r.type)+(inc?' ・ 主担当 '+esc(inc):(!inc&&back?' ・ 暫定 '+esc(back):""))+'</div></div><div class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</div></div>'+badges+'<div class="compact-note">'+esc(r.note)+'</div></article>';
+  return '<article class="compact-row"><div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+
+    '<div class="compact-meta">'+esc(r.type)+(holder?' ・ '+esc(holder):'')+'</div></div>'+
+    '<div class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</div></div>'+
+    '<div class="compact-note">'+esc(r.note)+'</div></article>';
 }
 function coverageGroup(label,items){
   const state=x=>x.need||x.status||"未確認";
@@ -133,11 +114,7 @@ function renderRoster(){
 }
 function renderRefine(){
   const list=refiningRoles();
-  const actionable=list.filter(r=>r.upgradeTarget);
-  const gaps=list.filter(r=>!r.upgradeTarget);
-  $("#captureList").innerHTML=actionable.length?actionable.map(captureCard).join(""):'<div class="lede">現在、優先して捕獲する対象はありません。</div>';
-  $("#captureGaps").innerHTML=gaps.length?'<details class="capture-gaps"><summary>候補種未設定 <b>'+gaps.length+'役割</b></summary><div class="capture-gap-list">'+gaps.map(r=>'<span>'+esc(r.name)+'</span>').join("")+'</div><p>この枠は役割の必要性までは確定していますが、「どの種族を狙うか」はCURRENTで未確定です。</p></details>':"";
-  $("#refineList").innerHTML=list.map((r,i)=>compactRole(r,true,i+1)).join("");
+  $("#refineList").innerHTML=list.length?list.map(r=>compactRole(r,true)).join(""):'<div class="lede">現在、厳選中の項目はありません。</div>';
 }
 function renderRoles(){
   const typ={食材:0,きのみ:1,スキル:2};

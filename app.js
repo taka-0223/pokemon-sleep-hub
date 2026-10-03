@@ -4,6 +4,14 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"—":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 const views=["home","roster","refine","roles","plan"];
 const qualityOrder={"S":0,"A+":1,"A":2,"B":3,"C":4,"特殊":5};
+let suppressClick=false;
+const captureFamily={
+  gardevoir:"ラルトス系",xatu:"ネイティ系",feraligatr:"ワニノコ系",empoleon:"ポッチャマ系",
+  dodrio:"ドードー系",typhlosion:"ヒノアラシ系",mewtwo:"ミュウツー",dedenne:"デデンネ",
+  bewear:"ヌイコグマ系",gengar:"ゴース系",charizard:"ヒトカゲ系",blastoise:"ゼニガメ系",
+  skeledirge:"ホゲータ系",meowscarada:"ニャオハ系",ampharos:"メリープ系",clodsire:"パルデアウパー系",
+  tyranitar:"ヨーギラス系",ribombee:"アブリー系",gourgeist_giga:"バケッチャ系",ditto:"メタモン",magnezone:"コイル系"
+};
 const foodTarget={milk_specialist:"モーモーミルク",cacao_specialist:"リラックスカカオ",apple:"とくせんリンゴ",potato:"ほっこりポテト",ginger:"あったかジンジャー",honey:"あまいミツ",pumpkin:"ずっしりカボチャ",oil_specialist:"ピュアなオイル",corn:"ワカクサコーン",mushroom:"あじわいキノコ",meat:"マメミート",egg_specialist:"とくせんエッグ",leek_specialist:"ふといながねぎ",tomato_specialist:"あんみんトマト",herb_specialist:"げきからハーブ",soybean_specialist:"ワカクサ大豆",coffee_specialist:"めざましコーヒー",avocado_specialist:"つやつやアボカド"};
 const individualById=Object.fromEntries(D.individuals.map(p=>[p.id,p]));
 const roleById=Object.fromEntries(D.roles.map(r=>[r.id,r]));
@@ -32,6 +40,41 @@ function srpText(p){
 function qualityBadge(q){
   return '<span class="quality '+esc(q)+'">'+esc(q)+'</span>';
 }
+function prioritySlug(p){return p==="高"?"high":p==="中"?"mid":"low";}
+function capturePriority(r){
+  if(r.search==="条件付き継続")return {label:"良個体なら",className:"conditional",rank:3};
+  if(r.priority==="高")return {label:"最優先",className:"top",rank:0};
+  if(r.priority==="中")return {label:"優先",className:"mid",rank:1};
+  return {label:"余裕があれば",className:"low",rank:2};
+}
+const needUrgency={不足:0,未所持:0,"副産物のみ":1,"暫定充足":2,"候補運用":2,"条件付き充足":3,"育成待ち":4,"充足予定":4,充足:5};
+const gapUrgency={大:0,中:1,小:2};
+function captureTargetLabel(r){
+  if(!r.upgradeTarget)return "候補種未設定";
+  return captureFamily[String(r.upgradeTarget)]||r.upgradeTargetName||String(r.upgradeTarget);
+}
+function refiningRoles(){
+  return [...D.roles]
+    .filter(r=>["継続","条件付き継続"].includes(r.search)||r.need==="不足")
+    .sort((a,b)=>capturePriority(a).rank-capturePriority(b).rank
+      +(capturePriority(a).rank===capturePriority(b).rank?((needUrgency[a.need]??9)-(needUrgency[b.need]??9)):0)
+      +(capturePriority(a).rank===capturePriority(b).rank&&(needUrgency[a.need]??9)===(needUrgency[b.need]??9)?((gapUrgency[a.gap]??9)-(gapUrgency[b.gap]??9)):0)
+      ||String(a.name||"").localeCompare(String(b.name||""),"ja"));
+}
+function captureCard(r,index){
+  const p=capturePriority(r),target=captureTargetLabel(r),missing=!r.upgradeTarget;
+  const facts=[
+    r.need?"状況 "+r.need:null,
+    r.search?"探索 "+r.search:null,
+    r.gap?"差 "+r.gap:null
+  ].filter(Boolean).map(x=>'<span>'+esc(x)+'</span>').join("");
+  return '<article class="capture-card tier-'+p.className+(missing?' target-missing':'')+'">'+
+    '<div class="capture-rank">'+(index+1)+'</div>'+
+    '<div class="capture-body"><div class="capture-name">'+esc(target)+'</div><div class="capture-role">'+esc(r.name)+'</div>'+
+    '<div class="capture-facts">'+facts+'</div><div class="capture-note">'+esc(r.note||"")+'</div></div>'+
+    '<span class="capture-tier tier-'+p.className+'">'+esc(p.label)+'</span></article>';
+}
+
 function denseRow(p){
   return '<article class="dense-row" data-id="'+esc(p.id)+'">'+
     '<div class="poke-main"><div class="poke-name">'+esc(p.name)+' <span class="poke-meta">Lv'+esc(p.level)+'</span></div><div class="poke-meta">'+esc(p.roleName)+'</div></div>'+
@@ -40,16 +83,18 @@ function denseRow(p){
     '<div><span class="cell-label">役割</span><span class="cell-value '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
   '</article>';
 }
-function compactRole(r,refine){
+function compactRole(r,refine,rank){
   const inc=individualById[r.incumbent]&&individualById[r.incumbent].name;
   const back=individualById[r.backup]&&individualById[r.backup].name;
   let badges="";
   if(refine){
-    badges='<div class="mini-badges"><span class="mini-badge">探索 '+esc(r.search)+'</span><span class="mini-badge">優先 '+esc(r.priority)+'</span>';
-    if(r.upgradeTarget)badges+='<span class="mini-badge">候補 '+esc(r.upgradeTarget)+'</span>';
+    badges='<div class="mini-badges"><span class="mini-badge">探索 '+esc(r.search)+'</span><span class="mini-badge priority-'+prioritySlug(r.priority)+'">優先 '+esc(r.priority)+'</span>';
+    if(r.upgradeTarget)badges+='<span class="mini-badge">狙う '+esc(captureTargetLabel(r))+'</span>';
+    else badges+='<span class="mini-badge target-unset">候補種 未設定</span>';
     badges+='</div>';
   }
-  return '<article class="compact-row"><div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div><div class="compact-meta">'+esc(r.type)+(inc?' ・ 主担当 '+esc(inc):(!inc&&back?' ・ 暫定 '+esc(back):""))+'</div></div><div class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</div></div>'+badges+'<div class="compact-note">'+esc(r.note)+'</div></article>';
+  const rankHtml=refine&&rank?'<span class="order-num">'+rank+'</span>':'';
+  return '<article class="compact-row"><div class="compact-top"><div><div class="compact-name">'+rankHtml+esc(r.name)+'</div><div class="compact-meta">'+esc(r.type)+(inc?' ・ 主担当 '+esc(inc):(!inc&&back?' ・ 暫定 '+esc(back):""))+'</div></div><div class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</div></div>'+badges+'<div class="compact-note">'+esc(r.note)+'</div></article>';
 }
 function coverageGroup(label,items){
   const state=x=>x.need||x.status||"未確認";
@@ -82,9 +127,9 @@ function renderRoster(){
   bindRows();
 }
 function renderRefine(){
-  const pr={高:0,中:1,低:2};
-  const list=D.roles.filter(r=>["継続","条件付き継続"].includes(r.search)||r.need==="不足").sort((a,b)=>(pr[a.priority]??9)-(pr[b.priority]??9));
-  $("#refineList").innerHTML=list.map(r=>compactRole(r,true)).join("");
+  const list=refiningRoles();
+  $("#captureList").innerHTML=list.length?list.map(captureCard).join(""):'<div class="lede">現在、優先して捕獲する対象はありません。</div>';
+  $("#refineList").innerHTML=list.map((r,i)=>compactRole(r,true,i+1)).join("");
 }
 function renderRoles(){
   const typ={食材:0,きのみ:1,スキル:2};
@@ -125,7 +170,7 @@ function detail(p){
   '<p class="lede" style="margin-top:10px">SRP βはポケスリシミュの基礎パラメータを固定条件で役割内比較した独自指標。個体PRとは別物です。</p>';
 }
 function bindRows(){
-  document.querySelectorAll(".dense-row[data-id]").forEach(el=>el.onclick=()=>{const p=individualById[el.dataset.id];if(!p)return;$("#detail").innerHTML=detail(p);$("#detailDialog").showModal();});
+  document.querySelectorAll(".dense-row[data-id]").forEach(el=>el.onclick=()=>{if(suppressClick)return;const p=individualById[el.dataset.id];if(!p)return;$("#detail").innerHTML=detail(p);$("#detailDialog").showModal();});
 }
 function showView(id,push){
   if(!views.includes(id))return;
@@ -142,9 +187,99 @@ document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>showView(b.datas
 $("#closeDialog").onclick=()=>$("#detailDialog").close();
 $("#detailDialog").onclick=e=>{if(e.target===$("#detailDialog"))$("#detailDialog").close();};
 ["search","qualityFilter","typeFilter"].forEach(id=>$("#"+id).addEventListener("input",renderRoster));
-let touchX=null,touchY=null;
-$("#swipeArea").addEventListener("touchstart",e=>{if($("#detailDialog").open)return;touchX=e.changedTouches[0].clientX;touchY=e.changedTouches[0].clientY;},{passive:true});
-$("#swipeArea").addEventListener("touchend",e=>{if(touchX==null)return;const dx=e.changedTouches[0].clientX-touchX,dy=e.changedTouches[0].clientY-touchY;touchX=null;if(Math.abs(dx)<65||Math.abs(dx)<Math.abs(dy)*1.25)return;const cur=document.querySelector(".view.active")?.id||"home",i=views.indexOf(cur),next=dx<0?i+1:i-1;if(next>=0&&next<views.length)showView(views[next],true);},{passive:true});
+const swipeArea=$("#swipeArea");
+let swipeState=null;
+function canStartSwipe(target){
+  return !target.closest("input,select,button,a,dialog,.status-summary,.resource-bar");
+}
+function clearSwipe(){
+  const s=swipeState;
+  if(!s)return;
+  [s.current,s.neighbor].filter(Boolean).forEach(el=>{
+    el.classList.remove("swipe-current","swipe-neighbor","swipe-animating");
+    el.style.removeProperty("--swipe-x");
+  });
+  swipeArea.classList.remove("is-swiping");
+  swipeState=null;
+}
+function setSwipeNeighbor(s,dir){
+  s.current.classList.add("swipe-current");
+  const next=s.index+dir;
+  if(next<0||next>=views.length){
+    if(s.neighbor){
+      s.neighbor.classList.remove("swipe-neighbor","swipe-animating");
+      s.neighbor.style.removeProperty("--swipe-x");
+    }
+    s.neighbor=null;s.dir=dir;return;
+  }
+  if(s.dir===dir&&s.neighbor)return;
+  if(s.neighbor){
+    s.neighbor.classList.remove("swipe-neighbor","swipe-animating");
+    s.neighbor.style.removeProperty("--swipe-x");
+  }
+  s.dir=dir;
+  s.neighbor=document.getElementById(views[next]);
+  s.neighbor.classList.add("swipe-neighbor");
+}
+function finishSwipe(e,cancelled){
+  const s=swipeState;
+  if(!s||e.pointerId!==s.pointerId)return;
+  if(s.locked!=="horizontal"){
+    clearSwipe();
+    return;
+  }
+  const dx=(typeof e.clientX==="number"?e.clientX:s.lastX)-s.startX;
+  const w=s.width||swipeArea.clientWidth;
+  const commit=!cancelled&&!!s.neighbor&&(Math.abs(dx)>w*.22||Math.abs(s.velocity)>.55);
+  s.current.classList.add("swipe-animating");
+  if(s.neighbor)s.neighbor.classList.add("swipe-animating");
+  if(commit){
+    s.current.style.setProperty("--swipe-x",(-s.dir*w)+"px");
+    s.neighbor.style.setProperty("--swipe-x","0px");
+    const nextId=views[s.index+s.dir];
+    setTimeout(()=>{showView(nextId,true);clearSwipe();},220);
+  }else{
+    s.current.style.setProperty("--swipe-x","0px");
+    if(s.neighbor)s.neighbor.style.setProperty("--swipe-x",(s.dir*w)+"px");
+    setTimeout(clearSwipe,220);
+  }
+  setTimeout(()=>{suppressClick=false;},360);
+}
+swipeArea.addEventListener("pointerdown",e=>{
+  if($("#detailDialog").open||!canStartSwipe(e.target))return;
+  const current=document.querySelector(".view.active");
+  if(!current)return;
+  swipeState={
+    pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,lastX:e.clientX,lastTime:performance.now(),
+    velocity:0,locked:null,current,index:views.indexOf(current.id),neighbor:null,dir:0,width:swipeArea.clientWidth
+  };
+});
+swipeArea.addEventListener("pointermove",e=>{
+  const s=swipeState;
+  if(!s||e.pointerId!==s.pointerId)return;
+  const dx=e.clientX-s.startX,dy=e.clientY-s.startY;
+  if(s.locked===null){
+    if(Math.max(Math.abs(dx),Math.abs(dy))<8)return;
+    if(Math.abs(dy)>Math.abs(dx)){s.locked="vertical";return;}
+    s.locked="horizontal";
+    try{swipeArea.setPointerCapture(e.pointerId);}catch(_){}
+  }
+  if(s.locked!=="horizontal")return;
+  const dir=dx<0?1:-1;
+  setSwipeNeighbor(s,dir);
+  const now=performance.now(),dt=Math.max(1,now-s.lastTime);
+  s.velocity=(e.clientX-s.lastX)/dt;
+  s.lastX=e.clientX;s.lastTime=now;
+  const w=s.width||swipeArea.clientWidth;
+  const x=s.neighbor?dx:dx*.22;
+  s.current.style.setProperty("--swipe-x",x+"px");
+  if(s.neighbor)s.neighbor.style.setProperty("--swipe-x",(x+dir*w)+"px");
+  swipeArea.classList.add("is-swiping");
+  if(Math.abs(dx)>10)suppressClick=true;
+  e.preventDefault();
+});
+swipeArea.addEventListener("pointerup",e=>finishSwipe(e,false));
+swipeArea.addEventListener("pointercancel",e=>finishSwipe(e,true));
 document.addEventListener("keydown",e=>{if(!["ArrowLeft","ArrowRight"].includes(e.key))return;const cur=document.querySelector(".view.active")?.id||"home",i=views.indexOf(cur),next=e.key==="ArrowRight"?i+1:i-1;if(next>=0&&next<views.length)showView(views[next],true);});
 renderHome();renderRefine();renderRoles();renderPlan();showView(location.hash.slice(1)||"home",false);
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));

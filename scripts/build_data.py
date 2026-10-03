@@ -99,6 +99,7 @@ def main():
     species=dict_rows(wb.get("M_Species",[]),"species_key")
     account=dict_rows(wb.get("P_Account",[]),"account_key")
     rules=dict_rows(wb.get("M_Rules",[]),"rule_id")
+    role_coverage=dict_rows(wb.get("P_RoleCoverage",[]),"coverage_id")
 
     dec_by={x.get("individual_id"):x for x in decisions}
     role_by={x.get("role_slot_id"):x for x in roles}
@@ -174,12 +175,17 @@ def main():
         val=first(rr,"value","setting_value")
         if rr.get("rule_id") in ("DATA_REVISION","data_revision") and val: revision=str(val)
 
+    coverage_matrix=[{
+      "id":c.get("coverage_id"),"domain":c.get("domain"),"key":c.get("role_key"),"name":c.get("role_name"),
+      "status":c.get("coverage_status"),"priority":c.get("priority")
+    } for c in role_coverage]
     event_path=Path(__file__).resolve().parent.parent/"config"/"events.json"
     events=json.loads(event_path.read_text(encoding="utf-8")) if event_path.exists() else []
-    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","source":xlsx.name,"appVersion":"0.7"},
+    generated_at=revision[:10] if re.match(r"^\d{4}-\d{2}-\d{2}",revision) else None
+    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","generatedAt":generated_at,"source":xlsx.name,"appVersion":"0.7"},
           "individuals":app,"roles":app_roles,
           "coverage":{"food":coverage("食材"),"berry":coverage("きのみ"),"skill":coverage("スキル")},
-          "resources":resources,"events":events}
+          "resources":resources,"events":events,"coverageMatrix":coverage_matrix}
     target.write_text("window.APP_DATA="+json.dumps(data,ensure_ascii=False,separators=(",",":"))+";\n",encoding="utf-8")
     print("data snapshot:",len(app),"individuals,",len(app_roles),"roles,",sum(x["primaryPR"] is not None for x in app),"PR-measured ->",target)
 

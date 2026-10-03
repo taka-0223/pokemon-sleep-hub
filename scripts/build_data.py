@@ -144,7 +144,8 @@ def main():
     app_roles=[{
       "id":r.get("role_slot_id"),"key":r.get("role_key"),"name":r.get("role_name"),"type":r.get("role_type"),
       "incumbent":r.get("incumbent_id"),"backup":r.get("backup_id"),"need":r.get("need_status"),
-      "search":r.get("search_status"),"upgradeTarget":r.get("target_species_key"),
+      "search":r.get("search_status"),"upgradeTarget":first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key"),
+      "upgradeTargetName":species_name.get(first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key")) or first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key"),
       "gap":r.get("replacement_gap"),"priority":r.get("priority"),"note":r.get("note")
     } for r in roles]
 
@@ -163,7 +164,7 @@ def main():
 
     event_path=Path(__file__).resolve().parent.parent/"config"/"events.json"
     events=json.loads(event_path.read_text(encoding="utf-8")) if event_path.exists() else []
-    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","source":xlsx.name,"appVersion":"0.4"},
+    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","source":xlsx.name,"appVersion":"0.5"},
           "individuals":app,"roles":app_roles,
           "coverage":{"food":coverage("食材"),"berry":coverage("きのみ"),"skill":coverage("スキル")},
           "resources":resources,"events":events}

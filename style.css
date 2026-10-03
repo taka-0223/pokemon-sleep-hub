@@ -36,3 +36,9 @@
   .capture-tier{grid-column:2;justify-self:start;margin-top:-2px}
 }
 @media(max-width:390px){.view.swipe-neighbor{left:8px;right:8px}.capture-card{padding:10px}.capture-name{font-size:15px}}
+
+.capture-gaps{margin-top:10px;border:1px dashed rgba(255,138,148,.35);border-radius:14px;background:rgba(255,138,148,.035);padding:10px 11px}
+.capture-gaps summary{cursor:pointer;font-size:10px;color:#d5dde6}.capture-gaps summary b{color:var(--red);margin-left:4px}
+.capture-gap-list{display:flex;gap:5px;flex-wrap:wrap;margin-top:9px}
+.capture-gap-list span{font-size:9px;border:1px solid var(--line);background:#10161d;border-radius:999px;padding:4px 7px;color:#c6d0da}
+.capture-gaps p{font-size:10px;line-height:1.45;color:var(--muted);margin:8px 0 0}

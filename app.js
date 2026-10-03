@@ -56,10 +56,15 @@ function captureTargetLabel(r){
 function refiningRoles(){
   return [...D.roles]
     .filter(r=>["継続","条件付き継続"].includes(r.search)||r.need==="不足")
-    .sort((a,b)=>capturePriority(a).rank-capturePriority(b).rank
-      +(capturePriority(a).rank===capturePriority(b).rank?((needUrgency[a.need]??9)-(needUrgency[b.need]??9)):0)
-      +(capturePriority(a).rank===capturePriority(b).rank&&(needUrgency[a.need]??9)===(needUrgency[b.need]??9)?((gapUrgency[a.gap]??9)-(gapUrgency[b.gap]??9)):0)
-      ||String(a.name||"").localeCompare(String(b.name||""),"ja"));
+    .sort((a,b)=>{
+      const pa=capturePriority(a).rank,pb=capturePriority(b).rank;
+      if(pa!==pb)return pa-pb;
+      const na=needUrgency[a.need]??9,nb=needUrgency[b.need]??9;
+      if(na!==nb)return na-nb;
+      const ga=gapUrgency[a.gap]??9,gb=gapUrgency[b.gap]??9;
+      if(ga!==gb)return ga-gb;
+      return String(a.name||"").localeCompare(String(b.name||""),"ja");
+    });
 }
 function captureCard(r,index){
   const p=capturePriority(r),target=captureTargetLabel(r),missing=!r.upgradeTarget;

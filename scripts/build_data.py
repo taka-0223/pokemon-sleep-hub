@@ -104,6 +104,17 @@ def main():
     role_by={x.get("role_slot_id"):x for x in roles}
     species_name={x.get("species_key"):first(x,"display_name","species_name","name") for x in species}
     assess={(x.get("species_key"),x.get("role_key")):x for x in assessments}
+    grade_order={"S":0,"A+":1,"A":2}
+    assess_by_role={}
+    for a in assessments:
+        if a.get("grade") not in grade_order: continue
+        if a.get("status") not in (None,"","active","provisional"): continue
+        assess_by_role.setdefault(a.get("role_key"),[]).append(a)
+    def role_candidates(r):
+        preferred=first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key")
+        xs=assess_by_role.get(r.get("role_key"),[])
+        xs=sorted(xs,key=lambda a:(0 if a.get("species_key")==preferred else 1,grade_order.get(a.get("grade"),9),species_name.get(a.get("species_key")) or str(a.get("species_key") or "")))
+        return [{"speciesKey":a.get("species_key"),"name":species_name.get(a.get("species_key")) or a.get("species_key"),"grade":a.get("grade"),"preferred":a.get("species_key")==preferred} for a in xs]
     meas={}
     for m in measurements: meas.setdefault(m.get("individual_id"),[]).append(m)
 
@@ -146,6 +157,7 @@ def main():
       "incumbent":r.get("incumbent_id"),"backup":r.get("backup_id"),"need":r.get("need_status"),
       "search":r.get("search_status"),"upgradeTarget":first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key"),
       "upgradeTargetName":species_name.get(first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key")) or first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key"),
+      "targetCandidates":role_candidates(r),
       "gap":r.get("replacement_gap"),"priority":r.get("priority"),"note":r.get("note")
     } for r in roles]
 
@@ -164,7 +176,7 @@ def main():
 
     event_path=Path(__file__).resolve().parent.parent/"config"/"events.json"
     events=json.loads(event_path.read_text(encoding="utf-8")) if event_path.exists() else []
-    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","source":xlsx.name,"appVersion":"0.6"},
+    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","source":xlsx.name,"appVersion":"0.7"},
           "individuals":app,"roles":app_roles,
           "coverage":{"food":coverage("食材"),"berry":coverage("きのみ"),"skill":coverage("スキル")},
           "resources":resources,"events":events}

@@ -133,7 +133,10 @@ function renderRoster(){
 }
 function renderRefine(){
   const list=refiningRoles();
-  $("#captureList").innerHTML=list.length?list.map(captureCard).join(""):'<div class="lede">現在、優先して捕獲する対象はありません。</div>';
+  const actionable=list.filter(r=>r.upgradeTarget);
+  const gaps=list.filter(r=>!r.upgradeTarget);
+  $("#captureList").innerHTML=actionable.length?actionable.map(captureCard).join(""):'<div class="lede">現在、優先して捕獲する対象はありません。</div>';
+  $("#captureGaps").innerHTML=gaps.length?'<details class="capture-gaps"><summary>候補種未設定 <b>'+gaps.length+'役割</b></summary><div class="capture-gap-list">'+gaps.map(r=>'<span>'+esc(r.name)+'</span>').join("")+'</div><p>この枠は役割の必要性までは確定していますが、「どの種族を狙うか」はCURRENTで未確定です。</p></details>':"";
   $("#refineList").innerHTML=list.map((r,i)=>compactRole(r,true,i+1)).join("");
 }
 function renderRoles(){

@@ -1,13 +1,13 @@
-const D=window.APP_DATA||{individuals:[],roles:[],coverage:{},resources:{},events:[],meta:{}};
+const D=window.APP_DATA||{individuals:[],roles:[],coverage:{},coverageMatrix:[],resources:{},events:[],meta:{}};
 const SRP=window.SRP_DATA||{meta:{status:"pending"},bySpecies:{}};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"—":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 const views=["home","roster","refine","roles","plan"];
 const qualityOrder={"S":0,"A+":1,"A":2,"B":3,"C":4,"特殊":5};
-const foodTarget={milk_specialist:"モーモーミルク",cacao_specialist:"リラックスカカオ",apple:"とくせんリンゴ",potato:"ほっこりポテト",ginger:"あったかジンジャー",honey:"あまいミツ",pumpkin:"ずっしりカボチャ",oil_flexible:"ピュアなオイル",corn:"ワカクサコーン",mushroom:"あじわいキノコ",meat:"マメミート"};
+const foodTarget={milk_specialist:"モーモーミルク",cacao_specialist:"リラックスカカオ",apple:"とくせんリンゴ",potato:"ほっこりポテト",ginger:"あったかジンジャー",honey:"あまいミツ",pumpkin:"ずっしりカボチャ",oil_specialist:"ピュアなオイル",corn:"ワカクサコーン",mushroom:"あじわいキノコ",meat:"マメミート",egg_specialist:"とくせんエッグ",leek_specialist:"ふといながねぎ",tomato_specialist:"あんみんトマト",herb_specialist:"げきからハーブ",soybean_specialist:"ワカクサ大豆",coffee_specialist:"めざましコーヒー",avocado_specialist:"つやつやアボカド"};
 const individualById=Object.fromEntries(D.individuals.map(p=>[p.id,p]));
 const roleById=Object.fromEntries(D.roles.map(r=>[r.id,r]));
-const statusKind=s=>s==="充足"?"good":["育成待ち","充足予定","暫定充足","条件付き充足","候補運用"].includes(s)?"mid":s==="不足"?"bad":"unknown";
+const statusKind=s=>["充足","特殊充足"].includes(s)?"good":["育成待ち","充足予定","暫定充足","条件付き充足","候補運用","副産物のみ","将来解禁","非専任のみ","需要未確認"].includes(s)?"mid":["不足","未所持"].includes(s)?"bad":"unknown";
 const statusClass=s=>"state-"+statusKind(s);
 const normalizeName=s=>String(s||"").replaceAll("（","(").replaceAll("）",")");
 $("#revision").textContent="rev "+(D.meta.revision||"—");
@@ -52,10 +52,12 @@ function compactRole(r,refine){
   return '<article class="compact-row"><div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div><div class="compact-meta">'+esc(r.type)+(inc?' ・ 主担当 '+esc(inc):(!inc&&back?' ・ 暫定 '+esc(back):""))+'</div></div><div class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</div></div>'+badges+'<div class="compact-note">'+esc(r.note)+'</div></article>';
 }
 function coverageGroup(label,items){
-  const good=items.filter(x=>statusKind(x.need)==="good").length;
+  const state=x=>x.need||x.status||"未確認";
+  const good=items.filter(x=>statusKind(state(x))==="good").length;
   let body="";
   items.forEach(r=>{
-    body+='<div class="coverage-item"><span class="coverage-dot dot-'+statusKind(r.need)+'"></span><span class="label">'+esc(r.name.replace(/供給枠|専任枠|・きのみ枠|枠/g,""))+'</span><span class="state">'+esc(r.need)+'</span></div>';
+    const st=state(r);
+    body+='<div class="coverage-item"><span class="coverage-dot dot-'+statusKind(st)+'"></span><span class="label">'+esc(r.name.replace(/供給枠|専任枠|・きのみ枠|枠/g,""))+'</span><span class="state">'+esc(st)+'</span></div>';
   });
   return '<section class="coverage-group"><div class="coverage-head"><b>'+esc(label)+'</b><span>'+good+'/'+items.length+' 充足</span></div><div class="coverage-grid">'+body+'</div></section>';
 }
@@ -68,7 +70,7 @@ function renderHome(){
   const counts={}; roles.forEach(r=>counts[r.need]=(counts[r.need]||0)+1);
   const order={充足:0,育成待ち:1,充足予定:2,暫定充足:3,条件付き充足:4,不足:5};
   $("#statusSummary").innerHTML=Object.entries(counts).sort((a,b)=>(order[a[0]]??8)-(order[b[0]]??8)).map(x=>'<span class="status-pill '+statusClass(x[0])+'">'+esc(x[0])+' <b>'+x[1]+'</b></span>').join("");
-  $("#coverage").innerHTML=coverageGroup("食材",D.coverage.food||[])+coverageGroup("きのみ",D.coverage.berry||[])+coverageGroup("スキル",D.coverage.skill||[]);
+  const matrix=D.coverageMatrix||[];const covFood=matrix.length?matrix.filter(x=>x.domain==="食材"):(D.coverage.food||[]);const covBerry=matrix.length?matrix.filter(x=>x.domain==="きのみ"):(D.coverage.berry||[]);const covSkill=matrix.length?matrix.filter(x=>x.domain==="スキル"):(D.coverage.skill||[]);$("#coverage").innerHTML=coverageGroup("食材",covFood)+coverageGroup("きのみ",covBerry)+coverageGroup("スキル",covSkill);
   const core=[...a].filter(p=>["S","A+"].includes(p.quality)||p.roleNeed==="充足").sort((x,y)=>(qualityOrder[x.quality]??9)-(qualityOrder[y.quality]??9)||(x.priority??99)-(y.priority??99)).slice(0,10);
   $("#coreRoster").innerHTML=core.map(denseRow).join("");
   bindRows();

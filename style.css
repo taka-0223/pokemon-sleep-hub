@@ -19,3 +19,10 @@
 .refine-target.target-unset{border-style:dashed}
 .refine-target.target-unset b{color:var(--muted);font-weight:700}
 @media(max-width:390px){.view.swipe-neighbor{left:8px;right:8px}}
+
+.refine-target{align-items:flex-start}
+.target-list{display:flex;align-items:center;gap:5px;flex-wrap:wrap;min-width:0}
+.target-list b,.target-list span{font-size:11px;white-space:normal;color:var(--text)}
+.target-list i{font-style:normal;font-size:9px;color:var(--accent);margin-left:2px}
+.target-list b small{font-size:8px;color:var(--muted);font-weight:700;margin-left:4px}
+.target-list em{font-style:normal;font-size:9px;color:#5d6977}

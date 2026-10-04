@@ -30,7 +30,7 @@ async function setPokemon(page, t) {
   await page.getByText('ポケモンを選択',{exact:true}).waitFor();
   const row = page.locator('tbody tr').filter({hasText:t.name}).first();
   await row.waitFor();
-  await row.click();
+  await row.evaluate(el=>el.click());
   await page.getByRole('button',{name:t.name,exact:true}).first().waitFor();
 
   const foodGroups = page.locator('.food-icon-select');
@@ -103,7 +103,7 @@ async function extractResult(page,t) {
     const res=await extractResult(page,t);
     console.log(JSON.stringify(res));
     results.push(res);
+    fs.writeFileSync('pr-results.json',JSON.stringify({measuredAt:new Date().toISOString(),source:'pokesle-simulator tmp-evaluate',silverSeed:false,results},null,2));
   }
-  fs.writeFileSync('pr-results.json',JSON.stringify({measuredAt:new Date().toISOString(),source:'pokesle-simulator tmp-evaluate',silverSeed:false,results},null,2));
   await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

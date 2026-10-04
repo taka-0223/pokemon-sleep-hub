@@ -56,3 +56,12 @@
 .unlock-level{position:absolute;left:7px;top:-8px;padding:1px 6px;border-radius:999px;background:#9a7049;color:#fff;font-size:8px;font-weight:900;letter-spacing:.01em;box-shadow:0 1px 2px rgba(0,0,0,.18)}
 .subskill-name{line-height:1.2}
 @media(max-width:390px){.subskill-grid{gap:8px}.subskill-slot{font-size:10px;padding-left:5px;padding-right:5px}}
+
+/* Tier colors are independent from official subskill rarity colors */
+.tier-text{font-style:normal;font-weight:950}
+.tier-text.q-s{color:#f2c84b;text-shadow:0 0 10px rgba(242,200,75,.14)}
+.tier-text.q-ap{color:#72ceff}
+.tier-text.q-a{color:#7ce0a8}
+.tier-text.q-b{color:#a9b6c6}
+.tier-text.q-c{color:#ff98a1}
+.tier-text.q-special{color:#cfb2ff}

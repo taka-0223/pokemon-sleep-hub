@@ -22,15 +22,15 @@ const SHORT = {
 };
 
 async function setPokemon(page, t) {
-  const currentPokemonButton = page.locator('.form button').filter({hasText:/\S/}).first();
+  const selectedName = (await page.locator('.form').innerText()).split('\n').find(x => x && !['ポケモン','食材','サブスキル','せいかく'].includes(x) && !x.includes('スクショ') && !x.includes('※')) || 'フシギダネ';
+  const currentPokemonButton = page.getByRole('button',{name:selectedName,exact:true}).first();
   console.log('CURRENT_BUTTON', await currentPokemonButton.innerText());
   await currentPokemonButton.click();
-  const popup = page.locator('.pokemon-select-popup');
-  await popup.waitFor();
-  const row = popup.locator('tbody tr').filter({hasText:t.name}).first();
+  await page.getByText('ポケモンを選択',{exact:true}).waitFor();
+  const row = page.locator('tbody tr').filter({hasText:t.name}).first();
   await row.waitFor();
   await row.click();
-  await popup.waitFor({state:'detached'}).catch(()=>{});
+  await page.getByRole('button',{name:t.name,exact:true}).first().waitFor();
 
   const foodGroups = page.locator('.food-icon-select');
   for (let i=0;i<3;i++) {

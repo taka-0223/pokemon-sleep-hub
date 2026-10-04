@@ -1,1 +1,1 @@
-window.SRP_DATA={meta:{status:"pending",label:"Species Role Percentile β"},bySpecies:{}};
+window.SRP_DATA={meta:{status:"pending",label:"Species Role Percentile"},bySpecies:{}};

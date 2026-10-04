@@ -97,10 +97,10 @@ function targetSpeciesHtml(r,done){
   const xs=Array.isArray(r.targetCandidates)?r.targetCandidates:[];
   if(!xs.length)return '<b>'+esc(targetSpeciesLabel(r))+'</b>';
   return '<div class="target-list">'+xs.map(c=>{
-    const name=esc(candidateLabel(c)),grade=esc(c.grade||"—");
+    const name=esc(candidateLabel(c)),grade=c.grade||"—";
     return c.preferred
-      ? '<b>'+name+' <i>'+grade+'</i><small>'+(done?'採用':'本命')+'</small></b>'
-      : '<span>'+name+' <i>'+grade+'</i></span>';
+      ? '<b>'+name+' '+tierText(grade)+'<small>'+(done?'採用':'本命')+'</small></b>'
+      : '<span>'+name+' '+tierText(grade)+'</span>';
   }).join('<em>・</em>')+'</div>';
 }
 function refiningRoles(){

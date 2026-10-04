@@ -110,9 +110,9 @@ for food,cands in food_groups.items():
     for name,e in assign_group(cands,"ingredient_output_baseline_v1",lambda c:c["food"]+"供給"):
         slot(name)["food"][food]=e
 
-out={"meta":{"status":"ready","label":"Species Role Percentile β","level":LEVEL,
-             "source":"reimer0204/pokesle-simulator","methodVersion":"srp-v1",
-             "note":"Neutral nature, no subskills, no event bonuses. Role-specific species baseline; not individual PR."},
+out={"meta":{"status":"ready","label":"Species Role Percentile","level":LEVEL,
+             "source":"reimer0204/pokesle-simulator","methodVersion":"srp-v2",
+             "note":"Neutral nature, no subskills, no event bonuses. Role-specific species baseline generated from current pokesle-simulator data; not individual PR."},
      "bySpecies":by_species}
 target=Path(sys.argv[1] if len(sys.argv)>1 else "srp.js")
 target.parent.mkdir(parents=True,exist_ok=True)

@@ -1,0 +1,28 @@
+name: Measure missing Pokemon PR
+
+on:
+  push:
+    branches: ["measure/pr-missing-20261004"]
+  workflow_dispatch:
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm install playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Measure PR
+        run: node scripts/measure_missing_pr.cjs
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-results
+          path: pr-results.json

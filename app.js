@@ -1,5 +1,5 @@
 const D=window.APP_DATA||{individuals:[],roles:[],coverage:{},coverageMatrix:[],resources:{},events:[],meta:{}};
-const SRP=window.SRP_DATA||{meta:{status:"pending"},bySpecies:{}};
+const SRP=window.SRP_DATA||{meta:{status:"pending",label:"Species Role Percentile"},bySpecies:{}};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"—":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 const views=["home","roster","refine","roles","plan"];
@@ -30,8 +30,28 @@ function srpText(p){
   if((x.comparatorCount||0)<2)return "比較"+(x.comparatorCount||0)+"種";
   return "上位"+x.topPercent+"%";
 }
+const qualityClass={"S":"q-s","A+":"q-ap","A":"q-a","B":"q-b","C":"q-c","特殊":"q-special"};
+function tierClass(q){return qualityClass[q]||"q-other";}
 function qualityBadge(q){
-  return '<span class="quality '+esc(q)+'">'+esc(q)+'</span>';
+  return '<span class="quality '+tierClass(q)+'">'+esc(q)+'</span>';
+}
+function tierText(q){
+  return '<span class="tier-text '+tierClass(q)+'">'+esc(q||"—")+'</span>';
+}
+const goldSubSkills=new Set(["きのみの数S","げんき回復ボーナス","ゆめのかけらボーナス","リサーチEXPボーナス","睡眠EXPボーナス","おてつだいボーナス","スキルレベルアップM"]);
+const blueSubSkills=new Set(["スキル確率アップM","食材確率アップM","スキルレベルアップS","おてつだいスピードM","最大所持数アップL","最大所持数アップM"]);
+function subSkillRarity(name){
+  if(goldSubSkills.has(name))return "gold";
+  if(blueSubSkills.has(name))return "blue";
+  return "white";
+}
+function subSkillGrid(p){
+  return '<div class="subskill-grid">'+p.subskills.map(s=>{
+    const locked=Number(p.level||0)<Number(s.lv||0);
+    return '<div class="subskill-slot subskill-'+subSkillRarity(s.name)+(locked?' locked':'')+'">'+
+      (locked?'<span class="unlock-level">▣ Lv.'+esc(s.lv)+'</span>':'')+
+      '<span class="subskill-name">'+esc(s.name)+'</span></div>';
+  }).join("")+'</div>';
 }
 const targetFamily={
   gardevoir:"ラルトス系",torterra:"ナエトル系",pawmot:"パモ系",wigglytuff:"ププリン系",
@@ -77,10 +97,10 @@ function targetSpeciesHtml(r,done){
   const xs=Array.isArray(r.targetCandidates)?r.targetCandidates:[];
   if(!xs.length)return '<b>'+esc(targetSpeciesLabel(r))+'</b>';
   return '<div class="target-list">'+xs.map(c=>{
-    const name=esc(candidateLabel(c)),grade=esc(c.grade||"—");
+    const name=esc(candidateLabel(c)),grade=c.grade||"—";
     return c.preferred
-      ? '<b>'+name+' <i>'+grade+'</i><small>'+(done?'採用':'本命')+'</small></b>'
-      : '<span>'+name+' <i>'+grade+'</i></span>';
+      ? '<b>'+name+' '+tierText(grade)+'<small>'+(done?'採用':'本命')+'</small></b>'
+      : '<span>'+name+' '+tierText(grade)+'</span>';
   }).join('<em>・</em>')+'</div>';
 }
 function refiningRoles(){
@@ -94,7 +114,7 @@ function refiningRoles(){
 function denseRow(p){
   return '<article class="dense-row" data-id="'+esc(p.id)+'">'+
     '<div class="poke-main"><div class="poke-name">'+esc(p.name)+' <span class="poke-meta">Lv'+esc(p.level)+'</span></div><div class="poke-meta">'+esc(p.roleName)+'</div></div>'+
-    '<div class="species-cell"><span class="cell-label">種族</span><span class="cell-value">'+esc(p.speciesGrade||"—")+' <span class="srp-beta">'+esc(srpText(p))+'</span></span></div>'+
+    '<div class="species-cell"><span class="cell-label">種族</span><span class="cell-value">'+tierText(p.speciesGrade)+' <span class="srp-beta">'+esc(srpText(p))+'</span></span></div>'+
     '<div><span class="cell-label">個体</span><span class="cell-value">'+qualityBadge(p.quality)+(p.topPercent!=null?' <span class="top">上位'+esc(p.topPercent)+'%</span>':"")+'</span></div>'+
     '<div><span class="cell-label">役割</span><span class="cell-value '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
   '</article>';
@@ -183,12 +203,12 @@ function detail(p){
   const srpHtml=srp?esc(srp.label)+'<br><span class="srp-beta">'+((srp.comparatorCount||0)>1?'上位 '+srp.topPercent+'% ('+srp.rank+'/'+srp.comparatorCount+')':'比較対象 '+(srp.comparatorCount||0)+'種')+'</span>':"未算出";
   return '<div class="eyebrow">'+esc(p.roleName)+'</div><h2 class="detail-title">'+esc(p.name)+' <span class="poke-meta">Lv'+esc(p.level)+'</span></h2>'+
   '<div class="mini-badges">'+qualityBadge(p.quality)+'<span class="mini-badge">種族 '+esc(p.speciesGrade||"—")+'</span><span class="mini-badge">'+esc(p.foodPattern)+'</span><span class="mini-badge '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
-  '<div class="detail-grid" style="margin-top:10px"><div class="detail-box"><b>個体PR</b><p>'+(p.primaryPR!=null?esc(p.primaryMetric)+' PR'+p.primaryPR+'<br><span class="top">上位 '+p.topPercent+'%</span> / Lv'+p.primaryEvalLv:'未測定')+'</p></div><div class="detail-box"><b>種族SRP β</b><p>'+srpHtml+'</p></div></div>'+
+  '<div class="detail-grid" style="margin-top:10px"><div class="detail-box"><b>個体PR</b><p>'+(p.primaryPR!=null?esc(p.primaryMetric)+' PR'+p.primaryPR+'<br><span class="top">上位 '+p.topPercent+'%</span> / Lv'+p.primaryEvalLv:'未測定')+'</p></div><div class="detail-box"><b>種族SRP</b><p>'+srpHtml+'</p></div></div>'+
   '<div class="detail-box" style="margin-top:8px"><b>食材</b><p>'+p.foods.map(esc).join(" → ")+'</p><b>性格</b><p>'+esc(p.nature)+'（↑'+esc(p.natureUp)+' / ↓'+esc(p.natureDown)+'）</p></div>'+
-  '<div class="detail-box" style="margin-top:8px"><b>サブスキル</b><p>'+p.subskills.map(s=>"Lv"+s.lv+" "+esc(s.name)).join(" / ")+'</p></div>'+
+  '<div class="detail-box subskill-box" style="margin-top:8px"><b>サブスキル</b>'+subSkillGrid(p)+'</div>'+
   '<div class="detail-box" style="margin-top:8px"><b>意思決定</b><p>'+esc(p.rationale)+'</p></div>'+
   '<h3>PR履歴</h3><table class="measure-table"><thead><tr><th>Lv</th><th>指標</th><th>PR</th><th>換算</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-  '<p class="lede" style="margin-top:10px">SRP βはポケスリシミュの基礎パラメータを固定条件で役割内比較した独自指標。個体PRとは別物です。</p>';
+  '<p class="lede" style="margin-top:10px">種族SRPはポケスリシミュの最新基礎データを固定条件で役割内比較した指標。個体PRとは別物です。</p>';
 }
 function bindRows(){
   document.querySelectorAll(".dense-row[data-id]").forEach(el=>el.onclick=()=>{if(suppressClick)return;const p=individualById[el.dataset.id];if(!p)return;$("#detail").innerHTML=detail(p);$("#detailDialog").showModal();});

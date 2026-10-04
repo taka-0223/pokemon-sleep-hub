@@ -22,7 +22,9 @@ const SHORT = {
 };
 
 async function setPokemon(page, t) {
-  await page.locator('.pokemon-select-button').click();
+  const currentPokemonButton = page.locator('.form button').filter({hasText:/\S/}).first();
+  console.log('CURRENT_BUTTON', await currentPokemonButton.innerText());
+  await currentPokemonButton.click();
   const popup = page.locator('.pokemon-select-popup');
   await popup.waitFor();
   const row = popup.locator('tbody tr').filter({hasText:t.name}).first();
@@ -32,8 +34,9 @@ async function setPokemon(page, t) {
 
   const foodGroups = page.locator('.food-icon-select');
   for (let i=0;i<3;i++) {
-    const choice = foodGroups.nth(i).locator('.food-icon').filter({has: page.locator(`img[alt="${t.foods[i]}"]`)});
-    await choice.click();
+    const img = foodGroups.nth(i).locator(`img[alt="${t.foods[i]}"]`).first();
+    await img.waitFor();
+    await img.locator('..').click();
   }
 
   const selected = page.locator('.selected-list .selected-item');
@@ -54,11 +57,12 @@ async function extractResult(page,t) {
   const rows = await table.locator('tbody tr').allTextContents();
   const cells = await table.locator('tbody tr').evaluateAll(rows => rows.map(r => [...r.querySelectorAll('td')].map(td => td.textContent.trim())));
   const keyIndex = {energy:0,berry:1,food:2,skill:3}[t.metric];
-  const row = cells[keyIndex];
   const parse = s => Number(String(s).replace('%','').trim());
+  const energyRow=cells[0], roleRow=cells[keyIndex];
   return {
     id:t.id, name:t.name, metric:t.metric,
-    lv30:parse(row[1]), lv50:parse(row[2]), lv60:parse(row[3]),
+    energy:{lv30:parse(energyRow[1]),lv50:parse(energyRow[2]),lv60:parse(energyRow[3])},
+    role:{lv30:parse(roleRow[1]),lv50:parse(roleRow[2]),lv60:parse(roleRow[3])},
     allRows:cells
   };
 }
@@ -88,7 +92,7 @@ async function extractResult(page,t) {
   console.log('PAGE_URL',page.url());
   console.log('PAGE_TITLE',await page.title());
   console.log('BODY', (await page.locator('body').innerText()).slice(0,5000));
-  console.log('SELECT_BUTTONS',await page.locator('.pokemon-select-button').count());
+  console.log('FORM_BUTTONS',await page.locator('.form button').allTextContents());
 
   const results=[];
   for (const t of TARGETS) {

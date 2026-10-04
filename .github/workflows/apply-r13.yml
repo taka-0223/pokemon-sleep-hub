@@ -1,0 +1,30 @@
+name: Apply r13 public snapshot
+
+on:
+  push:
+    branches: ["ui/subskills-quality-srp-pr"]
+    paths:
+      - "scripts/apply_r13_snapshot.py"
+      - ".github/workflows/apply-r13.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Apply snapshot patch
+        run: python3 scripts/apply_r13_snapshot.py
+      - name: Validate snapshot
+        run: |
+          node -e "global.window={}; eval(require('fs').readFileSync('data.js','utf8')); if(window.APP_DATA.meta.revision!=='2026-10-04-r13') process.exit(1); if(window.APP_DATA.individuals.some(x=>x.primaryPR==null)) process.exit(2); console.log(window.APP_DATA.individuals.length,'individuals all PR ready')"
+      - name: Commit data.js
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Sync r13 public data snapshot"
+          git push

@@ -83,8 +83,12 @@ async function extractResult(page,t) {
     cfg.pokemonEdit.selectDisplayMode='table';
     localStorage.setItem('config',JSON.stringify(cfg));
   });
-  await page.reload({waitUntil:'networkidle',timeout:120000});
-  await page.waitForTimeout(1500);
+  await page.reload({waitUntil:'domcontentloaded',timeout:120000});
+  await page.waitForTimeout(5000);
+  console.log('PAGE_URL',page.url());
+  console.log('PAGE_TITLE',await page.title());
+  console.log('BODY', (await page.locator('body').innerText()).slice(0,5000));
+  console.log('SELECT_BUTTONS',await page.locator('.pokemon-select-button').count());
 
   const results=[];
   for (const t of TARGETS) {

@@ -31,8 +31,12 @@ function srpText(p){
   return "上位"+x.topPercent+"%";
 }
 const qualityClass={"S":"q-s","A+":"q-ap","A":"q-a","B":"q-b","C":"q-c","特殊":"q-special"};
+function tierClass(q){return qualityClass[q]||"q-other";}
 function qualityBadge(q){
-  return '<span class="quality '+(qualityClass[q]||"q-other")+'">'+esc(q)+'</span>';
+  return '<span class="quality '+tierClass(q)+'">'+esc(q)+'</span>';
+}
+function tierText(q){
+  return '<span class="tier-text '+tierClass(q)+'">'+esc(q||"—")+'</span>';
 }
 const goldSubSkills=new Set(["きのみの数S","げんき回復ボーナス","ゆめのかけらボーナス","リサーチEXPボーナス","睡眠EXPボーナス","おてつだいボーナス","スキルレベルアップM"]);
 const blueSubSkills=new Set(["スキル確率アップM","食材確率アップM","スキルレベルアップS","おてつだいスピードM","最大所持数アップL","最大所持数アップM"]);
@@ -110,7 +114,7 @@ function refiningRoles(){
 function denseRow(p){
   return '<article class="dense-row" data-id="'+esc(p.id)+'">'+
     '<div class="poke-main"><div class="poke-name">'+esc(p.name)+' <span class="poke-meta">Lv'+esc(p.level)+'</span></div><div class="poke-meta">'+esc(p.roleName)+'</div></div>'+
-    '<div class="species-cell"><span class="cell-label">種族</span><span class="cell-value">'+esc(p.speciesGrade||"—")+' <span class="srp-beta">'+esc(srpText(p))+'</span></span></div>'+
+    '<div class="species-cell"><span class="cell-label">種族</span><span class="cell-value">'+tierText(p.speciesGrade)+' <span class="srp-beta">'+esc(srpText(p))+'</span></span></div>'+
     '<div><span class="cell-label">個体</span><span class="cell-value">'+qualityBadge(p.quality)+(p.topPercent!=null?' <span class="top">上位'+esc(p.topPercent)+'%</span>':"")+'</span></div>'+
     '<div><span class="cell-label">役割</span><span class="cell-value '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
   '</article>';

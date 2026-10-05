@@ -10,6 +10,7 @@ const individualById=Object.fromEntries(D.individuals.map(p=>[p.id,p]));
 const roleById=Object.fromEntries(D.roles.map(r=>[r.id,r]));
 const statusKind=s=>["充足","特殊充足"].includes(s)?"good":["育成待ち","充足予定","暫定充足","条件付き充足","候補運用","副産物のみ","将来解禁","非専任のみ","需要未確認"].includes(s)?"mid":["不足","未所持"].includes(s)?"bad":"unknown";
 const statusClass=s=>"state-"+statusKind(s);
+const roleClass=t=>t==="食材"?"role-food":t==="きのみ"?"role-berry":t==="スキル"?"role-skill":"role-other";
 const normalizeName=s=>String(s||"").replaceAll("（","(").replaceAll("）",")");
 $("#revision").textContent="data "+(D.meta.revision||"—")+" · app v"+(D.meta.appVersion||"—");
 
@@ -131,7 +132,7 @@ function refiningRoles(){
   );
 }
 function denseRow(p){
-  return '<article class="dense-row" data-id="'+esc(p.id)+'">'+
+  return '<article class="dense-row '+roleClass(p.roleType)+'" data-id="'+esc(p.id)+'">'+
     '<div class="poke-main"><div class="poke-name">'+esc(displayName(p))+' <span class="poke-meta">Lv'+esc(p.level)+'</span></div><div class="poke-meta">'+esc(p.roleName)+'</div></div>'+
     '<div class="species-cell"><span class="cell-label">種族</span><span class="cell-value">'+tierText(p.speciesGrade)+' <span class="srp-beta">'+esc(srpText(p))+'</span></span></div>'+
     '<div><span class="cell-label">個体</span><span class="cell-value">'+qualityBadge(p.quality)+(p.topPercent!=null?' <span class="top">上位'+esc(p.topPercent)+'%</span>':"")+'</span><span class="mobile-species-tier">種 '+tierText(p.speciesGrade)+'</span></div>'+
@@ -144,7 +145,7 @@ function compactRole(r,refine){
   const holder=inc?("主担当 "+inc):(!inc&&back?("暫定 "+back):"");
   if(refine){
     const rs=refineState(r);
-    return '<article class="compact-row refine-row is-'+rs.className+'">'+
+    return '<article class="compact-row refine-row '+roleClass(r.type)+' is-'+rs.className+'">'+
       '<div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+
       '<div class="compact-meta">'+esc(r.type)+' ・ '+esc(r.need)+(holder?' ・ '+esc(holder):'')+'</div></div>'+
       '<div class="refine-flags"><span class="refine-status status-'+rs.className+'">'+rs.label+'</span>'+
@@ -152,7 +153,7 @@ function compactRole(r,refine){
       '<div class="refine-target'+(!r.upgradeTarget&&!r.targetCandidates?.length?' target-unset':'')+'"><span>'+(rs.done?'候補種':'狙う種族')+'</span>'+targetSpeciesHtml(r,rs.done)+'</div>'+
       '<div class="compact-note">'+esc(r.note)+'</div></article>';
   }
-  return '<article class="compact-row"><div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+
+  return '<article class="compact-row '+roleClass(r.type)+'"><div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+
     '<div class="compact-meta">'+esc(r.type)+(holder?' ・ '+esc(holder):'')+'</div></div>'+
     '<div class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</div></div>'+
     '<div class="compact-note">'+esc(r.note)+'</div></article>';

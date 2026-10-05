@@ -1275,3 +1275,22 @@ dialog::backdrop{background:rgba(34,43,51,.38);backdrop-filter:blur(3px)}
   .measure-table td{color:#cbd2d6}
   .srp-beta{color:#75a4c4}
 }
+
+
+/* v0.12.1 coverage theme fix */
+.coverage-item{
+  background:rgba(244,247,244,.92);
+  border:1px solid rgba(91,111,123,.10);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.72)
+}
+.coverage-item .label{color:#40515c}
+.coverage-item .state{color:#7f8d96}
+@media(prefers-color-scheme:dark){
+  .coverage-item{
+    background:rgba(37,49,61,.9);
+    border-color:rgba(171,188,201,.09);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.015)
+  }
+  .coverage-item .label{color:#d8dfe2}
+  .coverage-item .state{color:#9ca8b0}
+}

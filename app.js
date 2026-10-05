@@ -11,7 +11,7 @@ const roleById=Object.fromEntries(D.roles.map(r=>[r.id,r]));
 const statusKind=s=>["充足","特殊充足"].includes(s)?"good":["育成待ち","充足予定","暫定充足","条件付き充足","候補運用","副産物のみ","将来解禁","非専任のみ","需要未確認"].includes(s)?"mid":["不足","未所持"].includes(s)?"bad":"unknown";
 const statusClass=s=>"state-"+statusKind(s);
 const normalizeName=s=>String(s||"").replaceAll("（","(").replaceAll("）",")");
-$("#revision").textContent="rev "+(D.meta.revision||"—");
+$("#revision").textContent="data "+(D.meta.revision||"—")+" · app v"+(D.meta.appVersion||"—");
 
 function srpFor(p){
   const s=SRP.bySpecies&&SRP.bySpecies[normalizeName(p.targetSpeciesName)];

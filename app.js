@@ -38,6 +38,10 @@ function qualityBadge(q){
 function tierText(q){
   return '<span class="tier-text '+tierClass(q)+'">'+esc(q||"—")+'</span>';
 }
+function displayName(p){
+  const level=String(p.level??"");
+  return String(p.name||"").replace(new RegExp("\\s+Lv\\s*"+level+"(?=\\s|（|\\(|$)","i"),"").trim();
+}
 const goldSubSkills=new Set(["きのみの数S","げんき回復ボーナス","ゆめのかけらボーナス","リサーチEXPボーナス","睡眠EXPボーナス","おてつだいボーナス","スキルレベルアップM"]);
 const blueSubSkills=new Set(["スキル確率アップM","食材確率アップM","スキルレベルアップS","おてつだいスピードM","最大所持数アップL","最大所持数アップM"]);
 function subSkillRarity(name){
@@ -54,7 +58,7 @@ function subSkillGrid(p){
   }).join("")+'</div>';
 }
 const targetFamily={
-  gardevoir:"ラルトス系",torterra:"ナエトル系",pawmot:"パモ系",wigglytuff:"ププリン系",
+  gardevoir:"ラルトス→サーナイト",torterra:"ナエトル系",pawmot:"パモ系",wigglytuff:"ププリン系",
   xatu:"ネイティ系",musharna:"ムンナ系",feraligatr:"ワニノコ系",
   steelix:"イワーク系",empoleon:"ポッチャマ系",mewtwo:"ミュウツー",
   bewear:"ヌイコグマ系",comfey:"キュワワー",dragonite:"ミニリュウ系",
@@ -66,15 +70,15 @@ const targetFamily={
   golem:"イシツブテ系",drampa:"ジジーロン",tyranitar:"ヨーギラス系",
   vikavolt:"アゴジムシ系",aggron:"ココドラ系",clodsire:"パルデアウパー系",
   dedenne:"デデンネ",holiday_spheal:"タマザラシ(ホリデー)",
-  gallade:"ラルトス系",arcanine:"ガーディ系",jolteon:"イーブイ系",
+  gallade:"ラルトス→エルレイド",arcanine:"ガーディ系",jolteon:"イーブイ→サンダース",
   salamence:"タツベイ系",cetitan:"アルクジラ系",absol:"アブソル",venusaur:"フシギダネ系",
   pinsir:"カイロス",toxicroak:"グレッグル系",mawile:"クチート",cramorant:"ウッウ",
-  espeon:"イーブイ系",sudowoodo:"ウソハチ系",noivern:"オンバット系",
-  glaceon:"イーブイ系",flareon:"イーブイ系",kangaskhan:"ガルーラ",
-  gourgeist_small:"バケッチャ系",gourgeist_medium:"バケッチャ系",gourgeist_large:"バケッチャ系",
+  espeon:"イーブイ→エーフィ",sudowoodo:"ウソハチ系",noivern:"オンバット系",
+  glaceon:"イーブイ→グレイシア",flareon:"イーブイ→ブースター",kangaskhan:"ガルーラ",
+  gourgeist_small:"バケッチャ系（小）",gourgeist_medium:"バケッチャ系（中）",gourgeist_large:"バケッチャ系（大）",
   charizard:"ヒトカゲ系",blastoise:"ゼニガメ系",skeledirge:"ホゲータ系",
   meowscarada:"ニャオハ系",ampharos:"メリープ系",ribombee:"アブリー系",
-  gourgeist_giga:"バケッチャ系",ditto:"メタモン",magnezone:"コイル系"
+  gourgeist_giga:"バケッチャ系（特大）",ditto:"メタモン",magnezone:"コイル系"
 }
 const refinePriorityOrder={高:0,中:1,低:2};
 const refineNeedOrder={不足:0,未所持:0,"副産物のみ":1,"暫定充足":2,"候補運用":2,"条件付き充足":3,"育成待ち":4,"充足予定":4,充足:5};
@@ -113,9 +117,9 @@ function refiningRoles(){
 }
 function denseRow(p){
   return '<article class="dense-row" data-id="'+esc(p.id)+'">'+
-    '<div class="poke-main"><div class="poke-name">'+esc(p.name)+' <span class="poke-meta">Lv'+esc(p.level)+'</span></div><div class="poke-meta">'+esc(p.roleName)+'</div></div>'+
+    '<div class="poke-main"><div class="poke-name">'+esc(displayName(p))+' <span class="poke-meta">Lv'+esc(p.level)+'</span></div><div class="poke-meta">'+esc(p.roleName)+'</div></div>'+
     '<div class="species-cell"><span class="cell-label">種族</span><span class="cell-value">'+tierText(p.speciesGrade)+' <span class="srp-beta">'+esc(srpText(p))+'</span></span></div>'+
-    '<div><span class="cell-label">個体</span><span class="cell-value">'+qualityBadge(p.quality)+(p.topPercent!=null?' <span class="top">上位'+esc(p.topPercent)+'%</span>':"")+'</span></div>'+
+    '<div><span class="cell-label">個体</span><span class="cell-value">'+qualityBadge(p.quality)+(p.topPercent!=null?' <span class="top">上位'+esc(p.topPercent)+'%</span>':"")+'</span><span class="mobile-species-tier">種 '+tierText(p.speciesGrade)+'</span></div>'+
     '<div><span class="cell-label">役割</span><span class="cell-value '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
   '</article>';
 }
@@ -129,7 +133,7 @@ function compactRole(r,refine){
       '<div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+
       '<div class="compact-meta">'+esc(r.type)+' ・ '+esc(r.need)+(holder?' ・ '+esc(holder):'')+'</div></div>'+
       '<div class="refine-flags"><span class="refine-status status-'+rs.className+'">'+rs.label+'</span>'+
-      '<span class="refine-priority priority-'+prioritySlug(r.priority)+'">優先度 '+esc(r.priority||"—")+'</span></div></div>'+
+      (rs.done?'':'<span class="refine-priority priority-'+prioritySlug(r.priority)+'">優先度 '+esc(r.priority||"—")+'</span>')+'</div></div>'+
       '<div class="refine-target'+(!r.upgradeTarget&&!r.targetCandidates?.length?' target-unset':'')+'"><span>'+(rs.done?'候補種':'狙う種族')+'</span>'+targetSpeciesHtml(r,rs.done)+'</div>'+
       '<div class="compact-note">'+esc(r.note)+'</div></article>';
   }
@@ -200,10 +204,12 @@ function detail(p){
   const srp=srpFor(p);
   const measures=[...(p.measurements||[])].sort((a,b)=>(a.lv??999)-(b.lv??999)||String(a.metric).localeCompare(String(b.metric),"ja"));
   const rows=measures.length?measures.map(m=>'<tr><td>Lv'+esc(m.lv)+'</td><td>'+esc(m.metric)+'</td><td>'+esc(m.pr)+'</td><td>'+(typeof m.pr==="number"?'上位 '+(100-m.pr).toFixed(1)+'%':'—')+'</td></tr>').join(""):'<tr><td colspan="4">未測定</td></tr>';
-  const srpHtml=srp?esc(srp.label)+'<br><span class="srp-beta">'+((srp.comparatorCount||0)>1?'上位 '+srp.topPercent+'% ('+srp.rank+'/'+srp.comparatorCount+')':'比較対象 '+(srp.comparatorCount||0)+'種')+'</span>':"未算出";
-  return '<div class="eyebrow">'+esc(p.roleName)+'</div><h2 class="detail-title">'+esc(p.name)+' <span class="poke-meta">Lv'+esc(p.level)+'</span></h2>'+
-  '<div class="mini-badges">'+qualityBadge(p.quality)+'<span class="mini-badge">種族 '+esc(p.speciesGrade||"—")+'</span><span class="mini-badge">'+esc(p.foodPattern)+'</span><span class="mini-badge '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
-  '<div class="detail-grid" style="margin-top:10px"><div class="detail-box"><b>個体PR</b><p>'+(p.primaryPR!=null?esc(p.primaryMetric)+' PR'+p.primaryPR+'<br><span class="top">上位 '+p.topPercent+'%</span> / Lv'+p.primaryEvalLv:'未測定')+'</p></div><div class="detail-box"><b>種族SRP</b><p>'+srpHtml+'</p></div></div>'+
+  const srpUnavailable=p.roleType==="食材"&&!foodTarget[p.roleKey]?"対象外（複合役割）":(SRP.meta?.status==="ready"?"比較対象なし":"未算出");
+  const srpHtml=srp?esc(srp.label)+'<br><span class="srp-beta">'+((srp.comparatorCount||0)>1?'上位 '+srp.topPercent+'% ('+srp.rank+'/'+srp.comparatorCount+')':'比較対象 '+(srp.comparatorCount||0)+'種')+'</span>':srpUnavailable;
+  return '<div class="eyebrow">'+esc(p.roleName)+'</div><h2 class="detail-title">'+esc(displayName(p))+' <span class="poke-meta">Lv'+esc(p.level)+'</span></h2>'+
+  '<div class="mini-badges">'+qualityBadge(p.quality)+'<span class="mini-badge">種族 '+tierText(p.speciesGrade)+'</span><span class="mini-badge">'+esc(p.foodPattern)+'</span><span class="mini-badge '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
+  '<div class="main-skill-card"><span class="main-skill-icon">✦</span><div><small>メインスキル</small><strong>'+esc(p.mainSkill||"未登録")+'</strong></div><span class="main-skill-lv">Lv.'+esc(p.mainSkillLv||"—")+'</span></div>'+
+  '<div class="detail-grid"><div class="detail-box"><b>個体PR</b><p>'+(p.primaryPR!=null?esc(p.primaryMetric)+' '+p.primaryPR+'<br><span class="top">上位 '+p.topPercent+'%</span> / Lv'+p.primaryEvalLv:'未測定')+'</p></div><div class="detail-box"><b>種族SRP</b><p>'+srpHtml+'</p></div></div>'+
   '<div class="detail-box" style="margin-top:8px"><b>食材</b><p>'+p.foods.map(esc).join(" → ")+'</p><b>性格</b><p>'+esc(p.nature)+'（↑'+esc(p.natureUp)+' / ↓'+esc(p.natureDown)+'）</p></div>'+
   '<div class="detail-box subskill-box" style="margin-top:8px"><b>サブスキル</b>'+subSkillGrid(p)+'</div>'+
   '<div class="detail-box" style="margin-top:8px"><b>意思決定</b><p>'+esc(p.rationale)+'</p></div>'+

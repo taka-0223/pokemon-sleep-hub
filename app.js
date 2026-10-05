@@ -123,6 +123,54 @@ function targetSpeciesHtml(r,done){
       : '<span>'+name+' '+tierText(grade)+'</span>';
   }).join('<em>・</em>')+'</div>';
 }
+
+function roleHolder(r){
+  const id=r.incumbent||r.backup;
+  if(!id)return null;
+  const p=individualById[id];
+  if(!p)return null;
+  return {p,kind:r.incumbent?"主担当":"暫定"};
+}
+function currentRoleHtml(r){
+  const h=roleHolder(r);
+  if(!h)return '<div class="path-node path-current is-empty"><small>現状</small><strong>未所持</strong><span>担当なし</span></div>';
+  const p=h.p;
+  const aligned=p.roleId===r.id;
+  let meta=h.kind;
+  if(aligned){
+    meta+=' ・ 個体 <i class="path-quality '+tierClass(p.quality)+'">'+esc(p.quality||"—")+'</i>';
+    if(p.primaryPR!=null)meta+=' ・ PR'+esc(p.primaryPR);
+  }else{
+    meta+=' ・ 兼任';
+  }
+  return '<div class="path-node path-current"><small>現状</small><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+meta+'</span></div>';
+}
+function preferredCandidate(r){
+  const xs=Array.isArray(r.targetCandidates)?r.targetCandidates:[];
+  return xs.find(c=>c.preferred)||xs[0]||null;
+}
+function goalRoleHtml(r,done){
+  if(done&&!r.upgradeTarget){
+    return '<div class="path-node path-goal is-done"><small>更新目標</small><strong>更新不要</strong><span>現状維持</span></div>';
+  }
+  const c=preferredCandidate(r);
+  if(c){
+    return '<div class="path-node path-goal"><small>更新目標</small><strong>'+esc(candidateLabel(c))+' '+tierText(c.grade||"—")+'</strong><span>'+(c.preferred?'本命候補':'候補')+'</span></div>';
+  }
+  if(r.upgradeTarget){
+    return '<div class="path-node path-goal"><small>更新目標</small><strong>'+esc(targetSpeciesLabel(r))+'</strong><span>候補</span></div>';
+  }
+  return '<div class="path-node path-goal is-empty"><small>更新目標</small><strong>未設定</strong><span>候補未設定</span></div>';
+}
+function alternativeCandidatesHtml(r){
+  const xs=Array.isArray(r.targetCandidates)?r.targetCandidates:[];
+  const primary=preferredCandidate(r);
+  const alts=xs.filter(c=>c!==primary);
+  if(!alts.length)return "";
+  return '<div class="refine-target refine-alts"><span>他候補</span><div class="target-list">'+alts.map(c=>
+    '<span>'+esc(candidateLabel(c))+' '+tierText(c.grade||"—")+'</span>'
+  ).join('<em>・</em>')+'</div></div>';
+}
 function refiningRoles(){
   return [...D.roles].sort((a,b)=>
     (refineSearchOrder[a.search]??9)-(refineSearchOrder[b.search]??9)
@@ -147,10 +195,11 @@ function compactRole(r,refine){
     const rs=refineState(r);
     return '<article class="compact-row refine-row '+roleClass(r.type)+' is-'+rs.className+'">'+
       '<div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+
-      '<div class="compact-meta">'+esc(r.type)+' ・ '+esc(r.need)+(holder?' ・ '+esc(holder):'')+'</div></div>'+
+      '<div class="compact-meta">'+esc(r.type)+' ・ '+esc(r.need)+'</div></div>'+
       '<div class="refine-flags"><span class="refine-status status-'+rs.className+'">'+rs.label+'</span>'+
       (rs.done?'':'<span class="refine-priority priority-'+prioritySlug(r.priority)+'">優先度 '+esc(r.priority||"—")+'</span>')+'</div></div>'+
-      '<div class="refine-target'+(!r.upgradeTarget&&!r.targetCandidates?.length?' target-unset':'')+'"><span>'+(rs.done?'候補種':'狙う種族')+'</span>'+targetSpeciesHtml(r,rs.done)+'</div>'+
+      '<div class="refine-path">'+currentRoleHtml(r)+'<span class="path-arrow" aria-hidden="true">→</span>'+goalRoleHtml(r,rs.done)+'</div>'+
+      (rs.done?'':alternativeCandidatesHtml(r))+
       '<div class="compact-note">'+esc(r.note)+'</div></article>';
   }
   return '<article class="compact-row '+roleClass(r.type)+'"><div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+

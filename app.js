@@ -164,7 +164,8 @@ function goalRoleHtml(r,done){
 }
 function alternativeCandidatesHtml(r){
   const xs=Array.isArray(r.targetCandidates)?r.targetCandidates:[];
-  const alts=xs.filter(c=>!c.preferred);
+  const primary=preferredCandidate(r);
+  const alts=xs.filter(c=>c!==primary);
   if(!alts.length)return "";
   return '<div class="refine-target refine-alts"><span>他候補</span><div class="target-list">'+alts.map(c=>
     '<span>'+esc(candidateLabel(c))+' '+tierText(c.grade||"—")+'</span>'

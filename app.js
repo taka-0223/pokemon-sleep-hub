@@ -39,10 +39,7 @@ function tierText(q){
   return '<span class="tier-text '+tierClass(q)+'">'+esc(q||"—")+'</span>';
 }
 function displayName(p){
-  const level=String(p.level??"").replace(/[.*+?^{}()|[\]\\]/g,"\\function tierText(q){
-  return '<span class="tier-text '+tierClass(q)+'">'+esc(q||"—")+'</span>';
-}
-");
+  const level=String(p.level??"");
   return String(p.name||"").replace(new RegExp("\\s+Lv\\s*"+level+"(?=\\s|（|\\(|$)","i"),"").trim();
 }
 const goldSubSkills=new Set(["きのみの数S","げんき回復ボーナス","ゆめのかけらボーナス","リサーチEXPボーナス","睡眠EXPボーナス","おてつだいボーナス","スキルレベルアップM"]);

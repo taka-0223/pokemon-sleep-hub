@@ -104,6 +104,7 @@ def main():
     dec_by={x.get("individual_id"):x for x in decisions}
     role_by={x.get("role_slot_id"):x for x in roles}
     species_name={x.get("species_key"):first(x,"display_name","species_name","name") for x in species}
+    species_skill={x.get("species_key"):first(x,"main_skill","mainSkill") for x in species}
     assess={(x.get("species_key"),x.get("role_key")):x for x in assessments}
     grade_order={"S":0,"A+":1,"A":2}
     assess_by_role={}
@@ -138,6 +139,8 @@ def main():
         app.append({
           "id":iid,"name":first(ind,"display_name","name"),"level":ind.get("level"),
           "targetSpeciesName":species_name.get(target_key) or target_key,
+          "mainSkill":species_skill.get(ind.get("current_species_key")) or species_skill.get(target_key),
+          "mainSkillLv":ind.get("main_skill_lv"),
           "foods":[ind.get("ingredient_1"),ind.get("ingredient_30"),ind.get("ingredient_60")],
           "foodPattern":ind.get("food_pattern"),"nature":ind.get("nature_name"),
           "natureUp":ind.get("nature_up"),"natureDown":ind.get("nature_down"),

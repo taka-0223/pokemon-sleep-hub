@@ -57,6 +57,21 @@ function subSkillGrid(p){
       '<span class="subskill-name">'+esc(s.name)+'</span></div>';
   }).join("")+'</div>';
 }
+
+function foodGrid(p){
+  const levels=[1,30,60];
+  return '<div class="food-grid">'+(p.foods||[]).map((name,i)=>{
+    if(!name)return '';
+    const locked=Number(p.level||0)<levels[i];
+    return '<div class="food-slot'+(locked?' locked':'')+'"><small>Lv.'+levels[i]+'</small><strong>'+esc(name)+'</strong></div>';
+  }).join("")+'</div>';
+}
+function natureCard(p){
+  const neutral=(p.natureUp==="なし"||!p.natureUp)&&(p.natureDown==="なし"||!p.natureDown);
+  return '<div class="nature-card"><div class="nature-name"><small>せいかく</small><strong>'+esc(p.nature)+'</strong></div>'+
+    '<div class="nature-effects">'+(neutral?'<span class="nature-neutral">補正なし</span>':
+      '<span class="nature-up">↑ '+esc(p.natureUp)+'</span><span class="nature-down">↓ '+esc(p.natureDown)+'</span>')+'</div></div>';
+}
 const targetFamily={
   gardevoir:"ラルトス→サーナイト",torterra:"ナエトル系",pawmot:"パモ系",wigglytuff:"ププリン系",
   xatu:"ネイティ系",musharna:"ムンナ系",feraligatr:"ワニノコ系",
@@ -205,16 +220,23 @@ function detail(p){
   const measures=[...(p.measurements||[])].sort((a,b)=>(a.lv??999)-(b.lv??999)||String(a.metric).localeCompare(String(b.metric),"ja"));
   const rows=measures.length?measures.map(m=>'<tr><td>Lv'+esc(m.lv)+'</td><td>'+esc(m.metric)+'</td><td>'+esc(m.pr)+'</td><td>'+(typeof m.pr==="number"?'上位 '+(100-m.pr).toFixed(1)+'%':'—')+'</td></tr>').join(""):'<tr><td colspan="4">未測定</td></tr>';
   const srpUnavailable=p.roleType==="食材"&&!foodTarget[p.roleKey]?"対象外（複合役割）":(SRP.meta?.status==="ready"?"比較対象なし":"未算出");
-  const srpHtml=srp?esc(srp.label)+'<br><span class="srp-beta">'+((srp.comparatorCount||0)>1?'上位 '+srp.topPercent+'% ('+srp.rank+'/'+srp.comparatorCount+')':'比較対象 '+(srp.comparatorCount||0)+'種')+'</span>':srpUnavailable;
-  return '<div class="eyebrow">'+esc(p.roleName)+'</div><h2 class="detail-title">'+esc(displayName(p))+' <span class="poke-meta">Lv'+esc(p.level)+'</span></h2>'+
-  '<div class="mini-badges">'+qualityBadge(p.quality)+'<span class="mini-badge">種族 '+tierText(p.speciesGrade)+'</span><span class="mini-badge">'+esc(p.foodPattern)+'</span><span class="mini-badge '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
+  const srpValue=srp?(srp.comparatorCount||0)>1?srp.rank+'/'+srp.comparatorCount:String(srp.comparatorCount||0):"—";
+  const srpFoot=srp?((srp.comparatorCount||0)>1?'上位 '+srp.topPercent+'%': '比較対象 '+(srp.comparatorCount||0)+'種'):srpUnavailable;
+  return '<section class="detail-hero">'+
+    '<div class="detail-role">'+esc(p.roleName)+'</div>'+
+    '<div class="detail-identity"><div><h2>'+esc(displayName(p))+'</h2><span class="detail-level">Lv.'+esc(p.level)+'</span></div>'+qualityBadge(p.quality)+'</div>'+
+    '<div class="detail-tags"><span>種族 '+tierText(p.speciesGrade)+'</span><span>'+esc(p.foodPattern)+'</span><span class="'+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
+  '</section>'+
   '<div class="main-skill-card"><span class="main-skill-icon">✦</span><div><small>メインスキル</small><strong>'+esc(p.mainSkill||"未登録")+'</strong></div><span class="main-skill-lv">Lv.'+esc(p.mainSkillLv||"—")+'</span></div>'+
-  '<div class="detail-grid"><div class="detail-box"><b>個体PR</b><p>'+(p.primaryPR!=null?esc(p.primaryMetric)+' '+p.primaryPR+'<br><span class="top">上位 '+p.topPercent+'%</span> / Lv'+p.primaryEvalLv:'未測定')+'</p></div><div class="detail-box"><b>種族SRP</b><p>'+srpHtml+'</p></div></div>'+
-  '<div class="detail-box" style="margin-top:8px"><b>食材</b><p>'+p.foods.map(esc).join(" → ")+'</p><b>性格</b><p>'+esc(p.nature)+'（↑'+esc(p.natureUp)+' / ↓'+esc(p.natureDown)+'）</p></div>'+
-  '<div class="detail-box subskill-box" style="margin-top:8px"><b>サブスキル</b>'+subSkillGrid(p)+'</div>'+
-  '<div class="detail-box" style="margin-top:8px"><b>意思決定</b><p>'+esc(p.rationale)+'</p></div>'+
-  '<h3>PR履歴</h3><table class="measure-table"><thead><tr><th>Lv</th><th>指標</th><th>PR</th><th>換算</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-  '<p class="lede" style="margin-top:10px">種族SRPはポケスリシミュの最新基礎データを固定条件で役割内比較した指標。個体PRとは別物です。</p>';
+  '<div class="score-grid">'+
+    '<div class="score-card"><div class="score-label">個体PR</div><strong>'+(p.primaryPR!=null?esc(p.primaryPR):"—")+'</strong><small>'+esc(p.primaryMetric||"未測定")+'</small><div class="score-foot">'+(p.primaryPR!=null?'上位 '+esc(p.topPercent)+'% ・ Lv.'+esc(p.primaryEvalLv):'未測定')+'</div></div>'+
+    '<div class="score-card"><div class="score-label">SRP <span class="info-dot" tabindex="0" data-tip="同じ役割の種族を固定条件で比較した順位。個体PRとは別指標。">i</span></div><strong>'+esc(srpValue)+'</strong><small>役割内順位</small><div class="score-foot">'+esc(srpFoot)+'</div></div>'+
+  '</div>'+
+  '<section class="detail-section"><div class="detail-section-head"><span>食材</span></div>'+foodGrid(p)+'</section>'+
+  '<section class="detail-section">'+natureCard(p)+'</section>'+
+  '<section class="detail-section subskill-section"><div class="detail-section-head"><span>サブスキル</span></div>'+subSkillGrid(p)+'</section>'+
+  '<section class="decision-card"><div class="decision-top"><div><small>この個体の方針</small><strong>'+esc(p.disposition||"未設定")+'</strong></div><span>'+esc(p.refinement||"—")+'</span></div><p>'+esc(p.rationale)+'</p></section>'+
+  '<details class="history-disclosure"><summary>PR履歴 <span>'+measures.length+'件</span></summary><table class="measure-table"><thead><tr><th>Lv</th><th>指標</th><th>PR</th><th>換算</th></tr></thead><tbody>'+rows+'</tbody></table></details>';
 }
 function bindRows(){
   document.querySelectorAll(".dense-row[data-id]").forEach(el=>el.onclick=()=>{if(suppressClick)return;const p=individualById[el.dataset.id];if(!p)return;$("#detail").innerHTML=detail(p);$("#detailDialog").showModal();});

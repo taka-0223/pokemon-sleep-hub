@@ -2123,3 +2123,49 @@ dialog::backdrop{background:rgba(34,43,51,.38);backdrop-filter:blur(3px)}
     transition:none
   }
 }
+
+
+/* v0.16.1 roster fixed right rail */
+@media(max-width:700px){
+  .roster-card{
+    grid-template-columns:minmax(0,1fr) 132px
+  }
+  .roster-quality{
+    width:132px;
+    display:grid;
+    grid-template-columns:36px 88px;
+    gap:8px;
+    align-items:center;
+    justify-self:end
+  }
+  .roster-quality .quality{
+    width:36px;
+    height:36px;
+    min-width:36px
+  }
+  .roster-pr{
+    width:88px;
+    display:grid;
+    grid-template-columns:38px 50px;
+    column-gap:0;
+    align-items:baseline
+  }
+  .roster-pr strong{
+    width:38px;
+    text-align:right;
+    font-variant-numeric:tabular-nums
+  }
+  .roster-pr span{
+    width:50px;
+    padding-left:4px;
+    box-sizing:border-box;
+    text-align:left;
+    font-variant-numeric:tabular-nums
+  }
+  .roster-state{
+    width:84px;
+    box-sizing:border-box;
+    justify-self:end;
+    text-align:center
+  }
+}

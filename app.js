@@ -353,7 +353,7 @@ function renderAppInfo(){
     ["データ更新日",D.meta.generatedAt||"—"],
     ["手持ち",D.individuals.length+"体"],
     ["役割",D.roles.length+"件"],
-    ["SRP",SRP.meta?.status==="ready"?"算出済み":"未算出"],
+    ["SRPデータ",(SRP.meta?.status==="ready"&&Object.keys(SRP.bySpecies||{}).length>0)?"利用可能":"未読込"],
     ["データ元",D.meta.source||"—"]
   ];
   $("#appInfo").innerHTML=info.map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd></div>').join("");

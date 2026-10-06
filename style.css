@@ -2169,3 +2169,52 @@ dialog::backdrop{background:rgba(34,43,51,.38);backdrop-filter:blur(3px)}
     text-align:center
   }
 }
+
+
+/* v0.17 navigation + cache polish */
+.individual-link{
+  font:inherit;
+  color:inherit;
+  text-align:left;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent
+}
+.role-person.individual-link,
+.path-node.individual-link{
+  transition:transform .12s ease,border-color .12s ease,background .12s ease
+}
+.role-person.individual-link:active,
+.path-node.individual-link:active{
+  transform:scale(.985)
+}
+.role-person.individual-link:focus-visible,
+.path-node.individual-link:focus-visible{
+  outline:2px solid rgba(81,135,173,.35);
+  outline-offset:2px
+}
+.role-person.individual-link{
+  position:relative;
+  padding-right:24px
+}
+.role-person.individual-link::after{
+  content:"›";
+  position:absolute;
+  right:9px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-muted);
+  font-size:15px;
+  line-height:1
+}
+@media(prefers-color-scheme:dark){
+  .role-person.individual-link:focus-visible,
+  .path-node.individual-link:focus-visible{
+    outline-color:rgba(117,164,196,.38)
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .role-person.individual-link,
+  .path-node.individual-link{
+    transition:none
+  }
+}

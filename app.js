@@ -602,6 +602,6 @@ function syncCompactHeader(){
   document.body.classList.toggle("header-compact",window.scrollY>48);
 }
 window.addEventListener("scroll",syncCompactHeader,{passive:true});
+window.addEventListener("pagehide",rememberCurrentScroll);
 syncCompactHeader();
 renderHome();renderRefine();renderRoles();renderPlan();showView(location.hash.slice(1)||"home",false);
-if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));

@@ -208,7 +208,7 @@ def main():
     event_path=Path(__file__).resolve().parent.parent/"config"/"events.json"
     events=json.loads(event_path.read_text(encoding="utf-8")) if event_path.exists() else []
     generated_at=revision[:10] if re.match(r"^\d{4}-\d{2}-\d{2}",revision) else None
-    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","generatedAt":generated_at,"source":xlsx.name,"appVersion":"0.16.1"},
+    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","generatedAt":generated_at,"source":xlsx.name,"appVersion":"0.17"},
           "individuals":app,"roles":app_roles,
           "coverage":{"food":coverage("食材"),"berry":coverage("きのみ"),"skill":coverage("スキル")},
           "resources":resources,"events":events,"coverageMatrix":coverage_matrix}

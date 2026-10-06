@@ -225,11 +225,33 @@ function refiningRoles(){
   );
 }
 function denseRow(p){
-  return '<article class="dense-row '+roleClass(p.roleType)+'" data-id="'+esc(p.id)+'">'+
-    '<div class="poke-main"><div class="poke-name">'+esc(displayName(p))+' <span class="poke-meta">Lv'+esc(p.level)+'</span></div><div class="poke-meta">'+esc(p.roleName)+'</div></div>'+
-    '<div class="species-cell"><span class="cell-label">種族</span><span class="cell-value">'+tierText(p.speciesGrade)+' <span class="srp-beta">'+esc(srpText(p))+'</span></span></div>'+
-    '<div><span class="cell-label">個体</span><span class="cell-value">'+qualityBadge(p.quality)+(p.topPercent!=null?' <span class="top">上位'+esc(p.topPercent)+'%</span>':"")+'</span><span class="mobile-species-tier">種 '+tierText(p.speciesGrade)+'</span></div>'+
-    '<div><span class="cell-label">役割</span><span class="cell-value '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
+  const prMain=p.primaryPR!=null
+    ? '<div class="roster-pr"><small>'+esc(p.primaryMetric||"個体PR")+'</small><strong>'+esc(p.primaryPR)+'</strong>'+(p.topPercent!=null?'<span>上位'+esc(p.topPercent)+'%</span>':'')+'</div>'
+    : '<div class="roster-pr is-empty"><small>個体PR</small><strong>—</strong><span>未測定</span></div>';
+  return '<article class="dense-row roster-card '+roleClass(p.roleType)+'" data-id="'+esc(p.id)+'">'+
+    '<div class="roster-primary"><div class="roster-name-line"><span class="poke-name">'+esc(displayName(p))+'</span><span class="roster-level">Lv.'+esc(p.level)+'</span></div>'+
+      '<div class="roster-role">'+esc(p.roleName)+'</div></div>'+
+    '<div class="roster-quality">'+qualityBadge(p.quality)+prMain+'</div>'+
+    '<div class="roster-facts"><span>種族 '+tierText(p.speciesGrade)+'</span><span>SRP '+esc(srpText(p))+'</span></div>'+
+    '<div class="roster-state '+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</div>'+
+  '</article>';
+}
+function rolePersonPanel(label,id,r){
+  const p=id&&individualById[id];
+  if(!p){
+    return '<div class="role-person is-empty"><small>'+esc(label)+'</small><strong>未設定</strong><span>担当なし</span></div>';
+  }
+  const aligned=p.roleId===r.id;
+  const relation=aligned?(p.quality?'個体 '+p.quality:'評価あり'):'兼任';
+  const pr=aligned&&p.primaryPR!=null?' ・ PR'+p.primaryPR:'';
+  return '<div class="role-person"><small>'+esc(label)+'</small><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+esc(relation)+esc(pr)+'</span></div>';
+}
+function roleAssignmentCard(r){
+  return '<article class="role-assignment '+roleClass(r.type)+'">'+
+    '<div class="role-assignment-head"><div><div class="compact-name">'+esc(r.name)+'</div><div class="compact-meta">'+esc(r.type)+' ・ 優先度 '+esc(r.priority||"—")+'</div></div>'+
+      '<span class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</span></div>'+
+    '<div class="role-people">'+rolePersonPanel("主担当",r.incumbent,r)+rolePersonPanel("バックアップ",r.backup,r)+'</div>'+
+    (r.note?'<div class="role-note">'+esc(r.note)+'</div>':'')+
   '</article>';
 }
 function compactRole(r,refine){
@@ -288,10 +310,15 @@ function renderRefine(){
   $("#refineList").innerHTML=list.length?list.map(r=>compactRole(r,true)).join(""):'<div class="lede">表示対象の役割がありません。</div>';
 }
 function renderRoles(){
-  const typ={食材:0,きのみ:1,スキル:2};
-  const need={不足:0,育成待ち:1,充足予定:2,暫定充足:3,条件付き充足:4,充足:5};
-  const list=[...D.roles].sort((a,b)=>(typ[a.type]??9)-(typ[b.type]??9)||(need[a.need]??9)-(need[b.need]??9));
-  $("#roleList").innerHTML=list.map(r=>compactRole(r,false)).join("");
+  const need={不足:0,未所持:0,育成待ち:1,充足予定:2,暫定充足:3,候補運用:3,条件付き充足:4,充足:5,特殊充足:5};
+  const order=["食材","きのみ","スキル"];
+  $("#roleList").innerHTML=order.map(type=>{
+    const list=D.roles.filter(r=>r.type===type).sort((a,b)=>(need[a.need]??9)-(need[b.need]??9)||String(a.name||"").localeCompare(String(b.name||""),"ja"));
+    if(!list.length)return "";
+    const filled=list.filter(r=>["充足","特殊充足"].includes(r.need)).length;
+    return '<section class="role-domain"><div class="role-domain-head"><div><span class="eyebrow">CURRENT ASSIGNMENT</span><h3>'+esc(type)+'</h3></div><span>'+filled+'/'+list.length+' 充足</span></div>'+
+      '<div class="role-domain-list">'+list.map(roleAssignmentCard).join("")+'</div></section>';
+  }).join("");
 }
 function eventState(e){
   const now=Date.now(),s=Date.parse(e.start),end=Date.parse(e.end);

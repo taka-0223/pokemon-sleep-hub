@@ -1977,3 +1977,147 @@ dialog::backdrop{background:rgba(34,43,51,.38);backdrop-filter:blur(3px)}
     box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,.018)
   }
 }
+
+
+/* v0.16 compact roles + rank SRP + shrinking header */
+.topbar,
+.brand-moon,
+.topbar h1,
+.topbar .eyebrow,
+.settings-button{
+  transition:min-height .18s ease,padding .18s ease,width .18s ease,height .18s ease,font-size .18s ease,opacity .16s ease,transform .18s ease
+}
+.header-compact .topbar{
+  min-height:58px;
+  padding-top:7px;
+  padding-bottom:7px
+}
+.header-compact .brand-lockup{gap:8px}
+.header-compact .brand-moon{
+  width:28px;
+  height:28px
+}
+.header-compact .brand-moon svg{
+  width:18px;
+  height:18px
+}
+.header-compact .topbar h1{
+  margin-top:0;
+  font-size:15px
+}
+.header-compact .topbar .eyebrow{
+  height:0;
+  opacity:0;
+  overflow:hidden;
+  transform:translateY(-3px)
+}
+.header-compact .settings-button{
+  width:30px;
+  height:30px
+}
+.header-compact .settings-button svg{
+  width:16px;
+  height:16px
+}
+
+.role-domain{margin-top:14px}
+.role-domain-head{margin-bottom:6px}
+.role-domain-head h3{font-size:17px}
+.role-domain-list{gap:6px}
+.role-assignment{
+  padding:11px 12px 10px 14px;
+  border-radius:17px
+}
+.role-assignment-head{align-items:center}
+.role-assignment-head .compact-name{
+  font-size:12px;
+  line-height:1.2
+}
+.role-assignment-head .compact-state{
+  padding:4px 7px;
+  font-size:8px
+}
+.role-people{
+  margin-top:8px;
+  gap:6px
+}
+.role-people.is-single{
+  grid-template-columns:1fr
+}
+.role-person{
+  padding:8px 9px;
+  border-radius:12px
+}
+.role-person small{font-size:7px}
+.role-person strong{
+  margin-top:2px;
+  font-size:10px
+}
+.role-person>span{
+  margin-top:3px;
+  font-size:7px
+}
+.role-empty-state{
+  margin-top:8px;
+  padding:8px 10px;
+  border:1px dashed var(--stroke-soft);
+  border-radius:12px;
+  background:var(--surface-2)
+}
+.role-empty-state small{
+  display:block;
+  color:var(--ink-muted);
+  font-size:7px;
+  font-weight:900
+}
+.role-empty-state strong{
+  display:block;
+  margin-top:2px;
+  color:var(--ink-muted);
+  font-size:10px
+}
+.role-note-disclosure{
+  margin-top:7px;
+  padding-top:6px;
+  border-top:1px solid var(--stroke-soft)
+}
+.role-note-disclosure summary{
+  color:var(--ink-muted);
+  font-size:8px;
+  font-weight:800;
+  cursor:pointer;
+  list-style:none
+}
+.role-note-disclosure summary::-webkit-details-marker{display:none}
+.role-note-disclosure summary::before{
+  content:"›";
+  display:inline-block;
+  margin-right:5px;
+  color:var(--blue);
+  transition:transform .15s ease
+}
+.role-note-disclosure[open] summary::before{
+  transform:rotate(90deg)
+}
+.role-note-disclosure p{
+  margin:6px 0 0;
+  color:var(--ink-muted);
+  font-size:8px;
+  line-height:1.45
+}
+@media(max-width:420px){
+  .role-people{grid-template-columns:1fr 1fr}
+  .role-people.is-single{grid-template-columns:1fr}
+  .role-assignment{padding:10px 11px 9px 13px}
+}
+@media(prefers-color-scheme:dark){
+  .role-empty-state{
+    background:rgba(255,255,255,.018);
+    border-color:rgba(171,188,201,.08)
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .topbar,.brand-moon,.topbar h1,.topbar .eyebrow,.settings-button,.role-note-disclosure summary::before{
+    transition:none
+  }
+}

@@ -18,14 +18,14 @@ self.addEventListener("fetch",e=>{
   const url=new URL(req.url);
   if(url.origin!==self.location.origin)return;
 
-  const bypass=url.searchParams.has("update-check")||url.searchParams.has("_refresh")||url.searchParams.has("_reload");
-  if(bypass){
+  if(url.searchParams.has("update-check")){
     e.respondWith(fetch(req,{cache:"no-store"}));
     return;
   }
 
   if(req.mode==="navigate"){
-    e.respondWith(fetch(req).catch(()=>caches.match("./index.html")));
+    const forceFresh=url.searchParams.has("_refresh")||url.searchParams.has("_reload");
+    e.respondWith(fetch(req,forceFresh?{cache:"no-store"}:undefined).catch(()=>caches.match("./index.html")));
     return;
   }
 

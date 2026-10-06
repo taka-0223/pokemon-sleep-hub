@@ -1,0 +1,36 @@
+name: Refresh SRP Snapshot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Build SRP snapshot
+        run: |
+          python3 scripts/build_srp.py srp.js
+          node --check srp.js
+          grep -q '"status":"ready"' srp.js
+
+      - name: Commit when changed
+        run: |
+          if git diff --quiet -- srp.js; then
+            echo "SRP snapshot is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add srp.js
+          git commit -m "Refresh SRP snapshot"
+          git push origin HEAD:main

@@ -73,8 +73,9 @@ function srpFor(p){
 function srpText(p){
   const x=srpFor(p);
   if(!x)return "—";
-  if((x.comparatorCount||0)<2)return "比較"+(x.comparatorCount||0)+"種";
-  return "上位"+x.topPercent+"%";
+  const n=Number(x.comparatorCount||0),rank=Number(x.rank||0);
+  if(!n||!rank)return "—";
+  return rank+"位/"+n+"種";
 }
 const qualityClass={"S":"q-s","A+":"q-ap","A":"q-a","B":"q-b","C":"q-c","特殊":"q-special"};
 function tierClass(q){return qualityClass[q]||"q-other";}
@@ -215,20 +216,26 @@ function denseRow(p){
 }
 function rolePersonPanel(label,id,r){
   const p=id&&individualById[id];
-  if(!p){
-    return '<div class="role-person is-empty"><small>'+esc(label)+'</small><strong>未設定</strong><span>担当なし</span></div>';
-  }
+  if(!p)return "";
   const aligned=p.roleId===r.id;
   const relation=aligned?(p.quality?'個体 '+p.quality:'評価あり'):'兼任';
   const pr=aligned&&p.primaryPR!=null?' ・ PR'+p.primaryPR:'';
   return '<div class="role-person"><small>'+esc(label)+'</small><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+esc(relation)+esc(pr)+'</span></div>';
 }
 function roleAssignmentCard(r){
+  const people=[];
+  if(r.incumbent)people.push(rolePersonPanel("主担当",r.incumbent,r));
+  if(r.backup)people.push(rolePersonPanel(r.incumbent?"バックアップ":"暫定担当",r.backup,r));
+  const assignment=people.length
+    ? '<div class="role-people'+(people.length===1?' is-single':'')+'">'+people.join("")+'</div>'
+    : '<div class="role-empty-state"><small>現在の担当</small><strong>担当なし</strong></div>';
+  const note=r.note
+    ? '<details class="role-note-disclosure"><summary>判断メモ</summary><p>'+esc(r.note)+'</p></details>'
+    : '';
   return '<article class="role-assignment '+roleClass(r.type)+'">'+
-    '<div class="role-assignment-head"><div><div class="compact-name">'+esc(r.name)+'</div><div class="compact-meta">'+esc(r.type)+' ・ 優先度 '+esc(r.priority||"—")+'</div></div>'+
+    '<div class="role-assignment-head"><div class="compact-name">'+esc(r.name)+'</div>'+
       '<span class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</span></div>'+
-    '<div class="role-people">'+rolePersonPanel("主担当",r.incumbent,r)+rolePersonPanel("バックアップ",r.backup,r)+'</div>'+
-    (r.note?'<div class="role-note">'+esc(r.note)+'</div>':'')+
+    assignment+note+
   '</article>';
 }
 function compactRole(r,refine){
@@ -283,7 +290,12 @@ function renderRoster(){
 }
 function renderRefine(){
   let list=refiningRoles();
-  if(!appSettings.showCompletedRefine)list=list.filter(r=>!refineState(r).done);
+  const showDone=!!appSettings.showCompletedRefine;
+  if(!showDone)list=list.filter(r=>!refineState(r).done);
+  const lead=$("#refineLead");
+  if(lead)lead.textContent=showDone
+    ?"厳選中を上に、完了済みを下に表示。現状→更新目標と候補種を確認できます。"
+    :"厳選中・条件付きのみ表示中。現状→更新目標と候補種を確認できます。";
   $("#refineList").innerHTML=list.length?list.map(r=>compactRole(r,true)).join(""):'<div class="lede">表示対象の役割がありません。</div>';
 }
 function renderRoles(){
@@ -555,5 +567,10 @@ swipeArea.addEventListener("pointermove",e=>{
 swipeArea.addEventListener("pointerup",e=>finishSwipe(e,false));
 swipeArea.addEventListener("pointercancel",e=>finishSwipe(e,true));
 document.addEventListener("keydown",e=>{if(!["ArrowLeft","ArrowRight"].includes(e.key))return;const cur=document.querySelector(".view.active")?.id||"home",i=views.indexOf(cur),next=e.key==="ArrowRight"?i+1:i-1;if(next>=0&&next<views.length)showView(views[next],true);});
+function syncCompactHeader(){
+  document.body.classList.toggle("header-compact",window.scrollY>48);
+}
+window.addEventListener("scroll",syncCompactHeader,{passive:true});
+syncCompactHeader();
 renderHome();renderRefine();renderRoles();renderPlan();showView(location.hash.slice(1)||"home",false);
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));

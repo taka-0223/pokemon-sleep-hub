@@ -48,6 +48,15 @@ applyTheme(appSettings.theme);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"—":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 const views=["home","roster","refine","roles","plan"];
+const SCROLL_KEY="pokemon-sleep-hub.scroll.v1";
+function loadScrollPositions(){
+  try{return JSON.parse(sessionStorage.getItem(SCROLL_KEY)||"{}");}
+  catch(_){return {};}
+}
+let scrollPositions=loadScrollPositions();
+function saveScrollPositions(){
+  try{sessionStorage.setItem(SCROLL_KEY,JSON.stringify(scrollPositions));}catch(_){}
+}
 const qualityOrder={"S":0,"A+":1,"A":2,"B":3,"C":4,"特殊":5};
 let suppressClick=false;
 const foodTarget={milk_specialist:"モーモーミルク",cacao_specialist:"リラックスカカオ",apple:"とくせんリンゴ",potato:"ほっこりポテト",ginger:"あったかジンジャー",honey:"あまいミツ",pumpkin:"ずっしりカボチャ",oil_specialist:"ピュアなオイル",corn:"ワカクサコーン",mushroom:"あじわいキノコ",meat:"マメミート",egg_specialist:"とくせんエッグ",leek_specialist:"ふといながねぎ",tomato_specialist:"あんみんトマト",herb_specialist:"げきからハーブ",soybean_specialist:"ワカクサ大豆",coffee_specialist:"めざましコーヒー",avocado_specialist:"つやつやアボカド"};
@@ -166,7 +175,7 @@ function currentRoleHtml(r){
   }else{
     meta+=' ・ 兼任';
   }
-  return '<div class="path-node path-current"><small>現状</small><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+meta+'</span></div>';
+  return '<button type="button" class="path-node path-current individual-link" data-individual-id="'+esc(p.id)+'"><small>現状</small><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+meta+'</span></button>';
 }
 function preferredCandidate(r){
   const xs=Array.isArray(r.targetCandidates)?r.targetCandidates:[];
@@ -220,7 +229,7 @@ function rolePersonPanel(label,id,r){
   const aligned=p.roleId===r.id;
   const relation=aligned?(p.quality?'個体 '+p.quality:'評価あり'):'兼任';
   const pr=aligned&&p.primaryPR!=null?' ・ PR'+p.primaryPR:'';
-  return '<div class="role-person"><small>'+esc(label)+'</small><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+esc(relation)+esc(pr)+'</span></div>';
+  return '<button type="button" class="role-person individual-link" data-individual-id="'+esc(p.id)+'"><small>'+esc(label)+'</small><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+esc(relation)+esc(pr)+'</span></button>';
 }
 function roleAssignmentCard(r){
   const people=[];
@@ -297,6 +306,7 @@ function renderRefine(){
     ?"厳選中を上に、完了済みを下に表示。現状→更新目標と候補種を確認できます。"
     :"厳選中・条件付きのみ表示中。現状→更新目標と候補種を確認できます。";
   $("#refineList").innerHTML=list.length?list.map(r=>compactRole(r,true)).join(""):'<div class="lede">表示対象の役割がありません。</div>';
+  bindRows();
 }
 function renderRoles(){
   const need={不足:0,未所持:0,育成待ち:1,充足予定:2,暫定充足:3,候補運用:3,条件付き充足:4,充足:5,特殊充足:5};
@@ -308,6 +318,7 @@ function renderRoles(){
     return '<section class="role-domain"><div class="role-domain-head"><div><span class="eyebrow">CURRENT ASSIGNMENT</span><h3>'+esc(type)+'</h3></div><span>'+filled+'/'+list.length+' 充足</span></div>'+
       '<div class="role-domain-list">'+list.map(roleAssignmentCard).join("")+'</div></section>';
   }).join("");
+  bindRows();
 }
 function eventState(e){
   const now=Date.now(),s=Date.parse(e.start),end=Date.parse(e.end);
@@ -350,8 +361,16 @@ function detail(p){
   '<section class="decision-card"><div class="decision-top"><div><small>この個体の方針</small><strong>'+esc(p.disposition||"未設定")+'</strong></div><span>'+esc(p.refinement||"—")+'</span></div><p>'+esc(p.rationale)+'</p></section>'+
   '<details class="history-disclosure"><summary>PR履歴 <span>'+measures.length+'件</span></summary><table class="measure-table"><thead><tr><th>Lv</th><th>指標</th><th>PR</th><th>換算</th></tr></thead><tbody>'+rows+'</tbody></table></details>';
 }
+function openIndividual(id){
+  if(suppressClick)return;
+  const p=individualById[id];
+  if(!p)return;
+  $("#detail").innerHTML=detail(p);
+  $("#detailDialog").showModal();
+}
 function bindRows(){
-  document.querySelectorAll(".dense-row[data-id]").forEach(el=>el.onclick=()=>{if(suppressClick)return;const p=individualById[el.dataset.id];if(!p)return;$("#detail").innerHTML=detail(p);$("#detailDialog").showModal();});
+  document.querySelectorAll(".dense-row[data-id]").forEach(el=>el.onclick=()=>openIndividual(el.dataset.id));
+  document.querySelectorAll("[data-individual-id]").forEach(el=>el.onclick=e=>{e.stopPropagation();openIndividual(el.dataset.individualId);});
 }
 
 function renderUpdateHistory(){
@@ -440,8 +459,20 @@ function reloadApp(){
   url.searchParams.set("_reload",Date.now());
   location.replace(url.toString());
 }
+function rememberCurrentScroll(){
+  const id=document.querySelector(".view.active")?.id;
+  if(!id||!views.includes(id))return;
+  scrollPositions[id]=Math.max(0,Math.round(window.scrollY||0));
+  saveScrollPositions();
+}
+function restoreScroll(id){
+  const y=Math.max(0,Number(scrollPositions[id]||0));
+  requestAnimationFrame(()=>window.scrollTo({top:y,behavior:"auto"}));
+}
 function showView(id,push){
   if(!views.includes(id))return;
+  const current=document.querySelector(".view.active")?.id;
+  if(current&&current!==id)rememberCurrentScroll();
   document.querySelectorAll(".view").forEach(x=>x.classList.toggle("active",x.id===id));
   document.querySelectorAll(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.view===id));
   if(id==="roster")renderRoster();
@@ -449,7 +480,7 @@ function showView(id,push){
   if(id==="roles")renderRoles();
   if(id==="plan")renderPlan();
   if(push!==false)history.replaceState(null,"","#"+id);
-  window.scrollTo({top:0,behavior:"auto"});
+  restoreScroll(id);
 }
 document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>showView(b.dataset.view,true));
 $("#closeDialog").onclick=()=>$("#detailDialog").close();
@@ -571,6 +602,6 @@ function syncCompactHeader(){
   document.body.classList.toggle("header-compact",window.scrollY>48);
 }
 window.addEventListener("scroll",syncCompactHeader,{passive:true});
+window.addEventListener("pagehide",rememberCurrentScroll);
 syncCompactHeader();
 renderHome();renderRefine();renderRoles();renderPlan();showView(location.hash.slice(1)||"home",false);
-if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(console.error));

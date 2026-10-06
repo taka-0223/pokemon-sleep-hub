@@ -1951,8 +1951,14 @@ dialog::backdrop{background:rgba(34,43,51,.38);backdrop-filter:blur(3px)}
     min-width:36px
   }
   .roster-pr{
-    display:none
+    display:grid;
+    grid-template-columns:auto auto;
+    column-gap:3px
   }
+  .roster-pr small{display:none}
+  .roster-pr strong{font-size:12px}
+  .roster-pr span{font-size:7px}
+  .roster-quality{gap:6px}
   .roster-facts>span{font-size:8px;padding:4px 6px}
   .roster-state{font-size:8px;padding:5px 7px}
 }

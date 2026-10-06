@@ -105,6 +105,28 @@ def main():
     role_by={x.get("role_slot_id"):x for x in roles}
     species_name={x.get("species_key"):first(x,"display_name","species_name","name") for x in species}
     species_skill={x.get("species_key"):first(x,"main_skill","mainSkill") for x in species}
+    species_by_key={x.get("species_key"):x for x in species if x.get("species_key")}
+    family_members={}
+    for x in species:
+        fk=first(x,"family_key") or x.get("species_key")
+        if fk: family_members.setdefault(fk,[]).append(x)
+    def stage_num(x):
+        try: return float(first(x,"stage") or 999)
+        except: return 999
+    def species_display_label(key):
+        if not key: return None
+        row=species_by_key.get(key,{})
+        name=species_name.get(key) or str(key)
+        fk=first(row,"family_key")
+        members=family_members.get(fk,[]) if fk else []
+        if len(members)<=1: return name
+        base=min(members,key=stage_num)
+        base_name=species_name.get(base.get("species_key")) or first(base,"display_name","species_name","name")
+        if not base_name or base_name==name: return name
+        finals={first(m,"final_form_key") for m in members if first(m,"final_form_key")}
+        if len(finals)>1:
+            return f"{base_name}→{name}"
+        return f"{base_name}系"
     assess={(x.get("species_key"),x.get("role_key")):x for x in assessments}
     grade_order={"S":0,"A+":1,"A":2}
     assess_by_role={}
@@ -116,7 +138,7 @@ def main():
         preferred=first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key")
         xs=assess_by_role.get(r.get("role_key"),[])
         xs=sorted(xs,key=lambda a:(0 if a.get("species_key")==preferred else 1,grade_order.get(a.get("grade"),9),species_name.get(a.get("species_key")) or str(a.get("species_key") or "")))
-        return [{"speciesKey":a.get("species_key"),"name":species_name.get(a.get("species_key")) or a.get("species_key"),"grade":a.get("grade"),"preferred":a.get("species_key")==preferred} for a in xs]
+        return [{"speciesKey":a.get("species_key"),"name":species_name.get(a.get("species_key")) or a.get("species_key"),"displayLabel":species_display_label(a.get("species_key")),"grade":a.get("grade"),"preferred":a.get("species_key")==preferred} for a in xs]
     meas={}
     for m in measurements: meas.setdefault(m.get("individual_id"),[]).append(m)
 
@@ -161,6 +183,7 @@ def main():
       "incumbent":r.get("incumbent_id"),"backup":r.get("backup_id"),"need":r.get("need_status"),
       "search":r.get("search_status"),"upgradeTarget":first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key"),
       "upgradeTargetName":species_name.get(first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key")) or first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key"),
+      "upgradeTargetLabel":species_display_label(first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key")),
       "targetCandidates":role_candidates(r),
       "gap":r.get("replacement_gap"),"priority":r.get("priority"),"note":r.get("note")
     } for r in roles]

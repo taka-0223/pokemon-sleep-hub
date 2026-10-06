@@ -1419,3 +1419,287 @@ dialog::backdrop{background:rgba(34,43,51,.38);backdrop-filter:blur(3px)}
   }
   .refine-alts>span{color:#8f9ba4}
 }
+
+
+/* v0.14 settings + update center */
+.header-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:none
+}
+.settings-button{
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  padding:0;
+  border:1px solid var(--stroke-soft);
+  border-radius:50%;
+  background:rgba(255,255,255,.5);
+  color:var(--ink-muted);
+  box-shadow:0 5px 14px rgba(42,56,64,.05),inset 0 1px 0 rgba(255,255,255,.65);
+  cursor:pointer
+}
+.settings-button svg{
+  width:19px;
+  height:19px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.65;
+  stroke-linecap:round;
+  stroke-linejoin:round
+}
+.settings-button:active{transform:scale(.96)}
+.settings-dialog{
+  width:min(560px,calc(100vw - 24px));
+  max-height:min(780px,calc(100dvh - 36px));
+  padding:0;
+  overflow:hidden
+}
+.settings-dialog .close{
+  position:absolute;
+  z-index:4;
+  top:14px;
+  right:14px
+}
+.settings-sheet{
+  max-height:min(780px,calc(100dvh - 36px));
+  overflow:auto;
+  padding:22px 18px calc(24px + env(safe-area-inset-bottom))
+}
+.settings-title{padding:2px 44px 14px 2px}
+.settings-title .eyebrow{font-size:9px}
+.settings-title h2{
+  margin:3px 0 0;
+  color:var(--ink);
+  font-size:25px;
+  letter-spacing:-.035em
+}
+.settings-section{
+  margin-top:10px;
+  padding:14px;
+  border:1px solid var(--stroke-soft);
+  border-radius:20px;
+  background:var(--surface-1);
+  box-shadow:var(--shadow-card),inset 0 1px 0 rgba(255,255,255,.4)
+}
+.settings-section-title{
+  margin-bottom:10px;
+  color:var(--ink-muted);
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.08em
+}
+.update-card{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px;
+  border-radius:15px;
+  background:var(--surface-2);
+  border:1px solid var(--stroke-soft)
+}
+.update-card>div:first-child{min-width:0}
+.update-card small{
+  display:block;
+  color:var(--ink-muted);
+  font-size:8px;
+  font-weight:800
+}
+.update-card strong{
+  display:block;
+  margin-top:3px;
+  color:var(--ink);
+  font-size:18px
+}
+.update-card>div:first-child>span{
+  display:block;
+  margin-top:2px;
+  color:var(--ink-muted);
+  font-size:9px
+}
+.update-status{
+  max-width:52%;
+  color:var(--ink-soft);
+  font-size:10px;
+  line-height:1.45;
+  text-align:right
+}
+.settings-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:9px
+}
+.settings-action{
+  min-height:38px;
+  padding:8px 12px;
+  border:1px solid var(--stroke-soft);
+  border-radius:999px;
+  background:var(--surface-2);
+  color:var(--ink-soft);
+  font-size:10px;
+  font-weight:850;
+  cursor:pointer
+}
+.settings-action.primary{
+  background:rgba(75,155,123,.11);
+  border-color:rgba(75,155,123,.17);
+  color:var(--mint)
+}
+.settings-action.quiet{
+  margin-left:auto;
+  background:transparent
+}
+.settings-action:disabled{opacity:.55;cursor:default}
+.settings-action[hidden]{display:none}
+.settings-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  min-height:48px
+}
+.settings-row>span{min-width:0}
+.settings-row b{
+  display:block;
+  color:var(--ink);
+  font-size:12px
+}
+.settings-row small{
+  display:block;
+  margin-top:3px;
+  color:var(--ink-muted);
+  font-size:9px;
+  line-height:1.35
+}
+.settings-select{
+  flex:none;
+  min-width:132px;
+  min-height:38px;
+  padding:7px 30px 7px 10px;
+  border:1px solid var(--stroke-soft);
+  border-radius:12px;
+  background:var(--surface-2);
+  color:var(--ink-soft);
+  font-size:10px;
+  font-weight:800
+}
+.settings-toggle{
+  appearance:none;
+  flex:none;
+  width:46px;
+  height:27px;
+  margin:0;
+  border:1px solid var(--stroke-soft);
+  border-radius:999px;
+  background:var(--surface-3);
+  position:relative;
+  cursor:pointer;
+  transition:background .16s ease,border-color .16s ease
+}
+.settings-toggle::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:19px;
+  height:19px;
+  border-radius:50%;
+  background:#fff;
+  box-shadow:0 2px 6px rgba(35,47,55,.16);
+  transition:transform .16s ease
+}
+.settings-toggle:checked{
+  background:rgba(75,155,123,.62);
+  border-color:rgba(75,155,123,.34)
+}
+.settings-toggle:checked::after{transform:translateX(19px)}
+.update-history{
+  display:grid;
+  gap:7px
+}
+.update-entry{
+  border:1px solid var(--stroke-soft);
+  border-radius:14px;
+  background:var(--surface-2);
+  overflow:hidden
+}
+.update-entry summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 11px;
+  cursor:pointer;
+  list-style:none
+}
+.update-entry summary::-webkit-details-marker{display:none}
+.update-entry summary>div{min-width:0}
+.update-entry summary strong{
+  display:block;
+  color:var(--ink);
+  font-size:10px
+}
+.update-entry summary span{
+  display:block;
+  margin-top:2px;
+  color:var(--ink-soft);
+  font-size:9px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis
+}
+.update-entry time{
+  flex:none;
+  color:var(--ink-muted);
+  font-size:8px
+}
+.update-entry ul{
+  margin:0;
+  padding:0 14px 11px 27px;
+  color:var(--ink-soft);
+  font-size:9px;
+  line-height:1.55
+}
+.app-info{
+  margin:0;
+  display:grid;
+  gap:0
+}
+.app-info>div{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:8px 1px;
+  border-bottom:1px solid var(--stroke-soft)
+}
+.app-info>div:last-child{border-bottom:0}
+.app-info dt{
+  color:var(--ink-muted);
+  font-size:9px
+}
+.app-info dd{
+  margin:0;
+  max-width:68%;
+  color:var(--ink-soft);
+  font-size:9px;
+  font-weight:800;
+  text-align:right;
+  overflow-wrap:anywhere
+}
+.settings-empty{
+  color:var(--ink-muted);
+  font-size:10px
+}
+@media(max-width:500px){
+  .revision{display:none}
+  .settings-button{width:34px;height:34px}
+  .settings-sheet{padding-left:14px;padding-right:14px}
+  .settings-section{padding:13px}
+  .update-card{flex-direction:column}
+  .update-status{max-width:none;text-align:left}
+  .settings-action.quiet{margin-left:0}
+}

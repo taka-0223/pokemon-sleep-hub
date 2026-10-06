@@ -1,0 +1,66 @@
+name: Calculate Individual PR
+
+on:
+  push:
+    paths:
+      - "pr-calc-input.json"
+      - "scripts/pr_automation_client.js"
+      - "scripts/pr_browser_runner.mjs"
+      - "scripts/pr-automation.html"
+      - ".github/workflows/pr-calc.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  calculate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout hub
+        uses: actions/checkout@v5
+
+      - name: Clone current pokesle-simulator
+        run: git clone --depth 1 https://github.com/reimer0204/pokesle-simulator.git simulator
+
+      - name: Install simulator dependencies
+        working-directory: simulator
+        run: |
+          npm ci
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Install PR automation page
+        run: |
+          cp scripts/pr_automation_client.js simulator/pr-automation.js
+          cp scripts/pr-automation.html simulator/pr-automation.html
+          cp scripts/pr_browser_runner.mjs simulator/pr_browser_runner.mjs
+
+      - name: Start simulator
+        working-directory: simulator
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/pokesle-vite.log 2>&1 &
+          echo $! > /tmp/pokesle-vite.pid
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/pr-automation.html >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat /tmp/pokesle-vite.log
+          exit 1
+
+      - name: Calculate PR
+        working-directory: simulator
+        run: node pr_browser_runner.mjs ../pr-calc-input.json ../pr-results.json
+
+      - name: Show results
+        run: cat pr-results.json
+
+      - name: Upload PR results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-results
+          path: pr-results.json
+          retention-days: 7

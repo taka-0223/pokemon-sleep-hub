@@ -1,4 +1,4 @@
-name: Deploy PWA to GitHub Pages
+name: Validate PWA
 
 on:
   push:
@@ -7,51 +7,25 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - name: Validate source
         run: |
           python3 -m py_compile scripts/build_srp.py scripts/build_data.py
           node --check app.js
           node --check data.js
-
-      - name: Build Species Role Percentile
-        run: |
-          python3 scripts/build_srp.py srp.js
           node --check srp.js
+          node --check updates.js
+          grep -q '"status":"ready"' srp.js
 
-      - name: Prepare static site
+      - name: Verify SRP generator
         run: |
-          rm -rf _site
-          mkdir -p _site/icons
-          cp index.html style.css app.js data.js srp.js manifest.webmanifest service-worker.js .nojekyll _site/
-          cp icons/app-icon.svg _site/icons/
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          python3 scripts/build_srp.py /tmp/srp.js
+          node --check /tmp/srp.js
+          grep -q '"status":"ready"' /tmp/srp.js

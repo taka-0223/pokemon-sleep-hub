@@ -277,18 +277,81 @@ function coverageGroup(label,items){
   });
   return '<section class="coverage-group"><div class="coverage-head"><b>'+esc(label)+'</b><span>'+good+'/'+items.length+' 充足</span></div><div class="coverage-grid">'+body+'</div></section>';
 }
+function homeRolePerson(r){
+  const id=r.incumbent||r.backup;
+  const p=id&&individualById[id];
+  if(!p)return "担当なし";
+  return displayName(p)+(r.incumbent?"":"（暫定）");
+}
+function homeAttentionRow(r){
+  return '<button type="button" class="home-row home-role-row" data-home-view="roles">'+
+    '<div class="home-row-main"><strong>'+esc(r.name)+'</strong><span>'+esc(r.type)+' ・ '+esc(homeRolePerson(r))+'</span></div>'+
+    '<span class="home-state '+statusClass(r.need)+'">'+esc(r.need)+'</span>'+
+  '</button>';
+}
+function homeRefineRow(r){
+  const target=targetSpeciesLabel(r);
+  return '<button type="button" class="home-row home-refine-row" data-home-view="refine">'+
+    '<div class="home-row-main"><strong>'+esc(r.name)+'</strong><span>'+esc(homeRolePerson(r))+' → '+esc(target)+'</span></div>'+
+    '<span class="home-priority priority-'+prioritySlug(r.priority)+'">'+esc(r.priority||"—")+'</span>'+
+  '</button>';
+}
+function homeTrainingRow(p){
+  const target=p.targetLevel!=null?'Lv.'+esc(p.targetLevel):'継続育成';
+  return '<button type="button" class="home-row home-training-row individual-link" data-individual-id="'+esc(p.id)+'">'+
+    '<div class="home-train-grade">'+qualityBadge(p.quality)+'</div>'+
+    '<div class="home-row-main"><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+esc(p.roleName)+'</span></div>'+
+    '<span class="home-train-target">→ '+target+'</span>'+
+  '</button>';
+}
+function bindHomeActions(){
+  document.querySelectorAll("[data-home-view]").forEach(el=>el.onclick=()=>showView(el.dataset.homeView,true));
+}
 function renderHome(){
   const a=D.individuals,roles=D.roles;
   const measured=a.filter(x=>x.primaryPR!=null).length;
-  const refining=roles.filter(r=>["継続","条件付き継続"].includes(r.search)).length;
-  const kpis=[["手持ち",a.length],["A以上",a.filter(x=>["S","A+","A"].includes(x.quality)).length],["PR測定",measured+"/"+a.length],["厳選中",refining]];
-  $("#kpis").innerHTML=kpis.map(x=>'<div class="kpi"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("");
-  const counts={}; roles.forEach(r=>counts[r.need]=(counts[r.need]||0)+1);
-  const order={充足:0,育成待ち:1,充足予定:2,暫定充足:3,条件付き充足:4,不足:5};
-  $("#statusSummary").innerHTML=Object.entries(counts).sort((a,b)=>(order[a[0]]??8)-(order[b[0]]??8)).map(x=>'<span class="status-pill '+statusClass(x[0])+'">'+esc(x[0])+' <b>'+x[1]+'</b></span>').join("");
-  const matrix=D.coverageMatrix||[];const covFood=matrix.length?matrix.filter(x=>x.domain==="食材"):(D.coverage.food||[]);const covBerry=matrix.length?matrix.filter(x=>x.domain==="きのみ"):(D.coverage.berry||[]);const covSkill=matrix.length?matrix.filter(x=>x.domain==="スキル"):(D.coverage.skill||[]);$("#coverage").innerHTML=coverageGroup("食材",covFood)+coverageGroup("きのみ",covBerry)+coverageGroup("スキル",covSkill);
-  const core=[...a].filter(p=>["S","A+"].includes(p.quality)||p.roleNeed==="充足").sort((x,y)=>(qualityOrder[x.quality]??9)-(qualityOrder[y.quality]??9)||(x.priority??99)-(y.priority??99)).slice(0,10);
-  $("#coreRoster").innerHTML=core.map(denseRow).join("");
+  const refining=roles.filter(r=>["継続","条件付き継続"].includes(r.search));
+  const highRefining=refining.filter(r=>r.priority==="高");
+  const missing=roles.filter(r=>["不足","未所持"].includes(r.need));
+  const trainingWait=roles.filter(r=>r.need==="育成待ち");
+  const training=a.filter(p=>p.disposition==="育成").sort((x,y)=>(x.priority??99)-(y.priority??99));
+
+  const pulse=[
+    ["不足",missing.length,"danger"],
+    ["高優先厳選",highRefining.length,"focus"],
+    ["育成待ち",trainingWait.length,"mid"],
+    ["育成中",training.length,"good"]
+  ];
+  $("#homePulse").innerHTML=pulse.map(x=>'<div class="home-pulse-card is-'+x[2]+'"><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("");
+
+  const needOrder={不足:0,未所持:0,育成待ち:1,候補運用:2,暫定充足:3,条件付き充足:4,"副産物のみ":5};
+  const priorityOrder={高:0,中:1,低:2};
+  const attention=roles
+    .filter(r=>Object.prototype.hasOwnProperty.call(needOrder,r.need))
+    .sort((x,y)=>(priorityOrder[x.priority]??9)-(priorityOrder[y.priority]??9)||(needOrder[x.need]??9)-(needOrder[y.need]??9)||String(x.name||"").localeCompare(String(y.name||""),"ja"))
+    .slice(0,4);
+  $("#homeAttention").innerHTML=attention.length?attention.map(homeAttentionRow).join(""):'<div class="home-empty">要注意の役割はありません。</div>';
+
+  const highList=[...highRefining]
+    .sort((x,y)=>(needOrder[x.need]??9)-(needOrder[y.need]??9)||String(x.name||"").localeCompare(String(y.name||""),"ja"))
+    .slice(0,4);
+  $("#homeRefine").innerHTML=highList.length?highList.map(homeRefineRow).join(""):'<div class="home-empty">高優先の厳選はありません。</div>';
+
+  $("#homeTraining").innerHTML=training.length?training.slice(0,4).map(homeTrainingRow).join(""):'<div class="home-empty">育成中の個体はありません。</div>';
+
+  const highQuality=a.filter(x=>["S","A+","A"].includes(x.quality)).length;
+  const filled=roles.filter(r=>["充足","特殊充足"].includes(r.need)).length;
+  const summary=[
+    ["手持ち",a.length+"体"],
+    ["A以上",highQuality+"体"],
+    ["PR測定",measured+"/"+a.length],
+    ["充足",filled+"/"+roles.length]
+  ];
+  $("#homeSummary").innerHTML=
+    '<div class="home-summary-grid">'+summary.map(x=>'<div><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>'+
+    '<div class="home-data-line"><span>data '+esc(D.meta.revision||"—")+'</span><span>app v'+esc(D.meta.appVersion||"—")+'</span></div>';
+
+  bindHomeActions();
   bindRows();
 }
 function renderRoster(){

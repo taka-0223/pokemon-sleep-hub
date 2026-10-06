@@ -7,8 +7,8 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f6ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2530" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="./manifest.webmanifest?v=0.22">
-<link rel="stylesheet" href="./style.css?v=0.22">
+<link rel="manifest" href="./manifest.webmanifest?v=0.23">
+<link rel="stylesheet" href="./style.css?v=0.23">
 </head>
 <body>
 <header class="topbar">
@@ -29,12 +29,32 @@
 <main id="swipeArea" class="shell">
   <section id="home" class="view active">
     <div class="page-title"><div><span class="eyebrow">ACCOUNT OVERVIEW</span><h2>現状</h2></div></div>
-    <div id="kpis" class="kpi-grid"></div>
-    <div id="statusSummary" class="status-summary"></div>
-    <div class="section-head"><div><span class="eyebrow">COVERAGE</span><h2>役割の充足</h2></div></div>
-    <div id="coverage" class="coverage-stack"></div>
-    <div class="section-head"><div><span class="eyebrow">CORE ROSTER</span><h2>主な手持ち</h2></div></div>
-    <div id="coreRoster" class="dense-list"></div>
+    <p class="lede home-lede">アカウントの要注意点と、次に動くべきものだけをまとめています。</p>
+
+    <div id="homePulse" class="home-pulse-grid"></div>
+
+    <div class="section-head home-section-head">
+      <div><span class="eyebrow">ATTENTION</span><h2>要注意役割</h2></div>
+      <button type="button" class="home-section-link" data-home-view="roles">役割へ ›</button>
+    </div>
+    <div id="homeAttention" class="home-stack"></div>
+
+    <div class="section-head home-section-head">
+      <div><span class="eyebrow">REFINEMENT</span><h2>高優先の厳選</h2></div>
+      <button type="button" class="home-section-link" data-home-view="refine">厳選へ ›</button>
+    </div>
+    <div id="homeRefine" class="home-stack"></div>
+
+    <div class="section-head home-section-head">
+      <div><span class="eyebrow">TRAINING</span><h2>育成中</h2></div>
+      <button type="button" class="home-section-link" data-home-view="plan">育成へ ›</button>
+    </div>
+    <div id="homeTraining" class="home-stack"></div>
+
+    <div class="section-head home-section-head">
+      <div><span class="eyebrow">ACCOUNT</span><h2>アカウント要約</h2></div>
+    </div>
+    <div id="homeSummary" class="home-summary"></div>
   </section>
 
   <section id="roster" class="view">
@@ -143,16 +163,16 @@
     </section>
   </div>
 </dialog>
-<script src="./data.js?v=0.22"></script>
-<script src="./updates.js?v=0.22"></script>
-<script src="./srp.js?v=0.22"></script>
-<script src="./app.js?v=0.22"></script>
+<script src="./data.js?v=0.23"></script>
+<script src="./updates.js?v=0.23"></script>
+<script src="./srp.js?v=0.23"></script>
+<script src="./app.js?v=0.23"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;
-      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.22", { updateViaCache: "none" });
+      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.23", { updateViaCache: "none" });
       await reg.update();
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {

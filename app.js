@@ -118,29 +118,6 @@ function natureCard(p){
     '<div class="nature-effects">'+(neutral?'<span class="nature-neutral">補正なし</span>':
       '<span class="nature-up">↑ '+esc(p.natureUp)+'</span><span class="nature-down">↓ '+esc(p.natureDown)+'</span>')+'</div></div>';
 }
-const targetFamily={
-  gardevoir:"ラルトス→サーナイト",torterra:"ナエトル系",pawmot:"パモ系",wigglytuff:"ププリン系",
-  xatu:"ネイティ系",musharna:"ムンナ系",feraligatr:"ワニノコ系",
-  steelix:"イワーク系",empoleon:"ポッチャマ系",mewtwo:"ミュウツー",
-  bewear:"ヌイコグマ系",comfey:"キュワワー",dragonite:"ミニリュウ系",
-  spiritomb:"ミカルゲ",quagsire:"ウパー系",gengar:"ゴース系",
-  dodrio:"ドードー系",typhlosion:"ヒノアラシ系",ninetales:"ロコン系",
-  blissey:"ピンプク系",delibird:"デリバード",abomasnow:"ユキカブリ系",
-  farfetchd:"カモネギ",quaquaval:"クワッス系",dugtrio:"ディグダ系",
-  luxray:"コリンク系",victreebel:"マダツボミ系",flygon:"ナックラー系",
-  golem:"イシツブテ系",drampa:"ジジーロン",tyranitar:"ヨーギラス系",
-  vikavolt:"アゴジムシ系",aggron:"ココドラ系",clodsire:"パルデアウパー系",
-  dedenne:"デデンネ",holiday_spheal:"タマザラシ(ホリデー)",
-  gallade:"ラルトス→エルレイド",arcanine:"ガーディ系",jolteon:"イーブイ→サンダース",
-  salamence:"タツベイ系",cetitan:"アルクジラ系",absol:"アブソル",venusaur:"フシギダネ系",
-  pinsir:"カイロス",toxicroak:"グレッグル系",mawile:"クチート",cramorant:"ウッウ",
-  espeon:"イーブイ→エーフィ",sudowoodo:"ウソハチ系",noivern:"オンバット系",
-  glaceon:"イーブイ→グレイシア",flareon:"イーブイ→ブースター",kangaskhan:"ガルーラ",
-  gourgeist_small:"バケッチャ系（小）",gourgeist_medium:"バケッチャ系（中）",gourgeist_large:"バケッチャ系（大）",
-  charizard:"ヒトカゲ系",blastoise:"ゼニガメ系",skeledirge:"ホゲータ系",
-  meowscarada:"ニャオハ系",ampharos:"メリープ系",ribombee:"アブリー系",
-  gourgeist_giga:"バケッチャ系（特大）",ditto:"メタモン",magnezone:"コイル系"
-}
 const refinePriorityOrder={高:0,中:1,低:2};
 const refineNeedOrder={不足:0,未所持:0,"副産物のみ":1,"暫定充足":2,"候補運用":2,"条件付き充足":3,"育成待ち":4,"充足予定":4,充足:5};
 const refineSearchOrder={継続:0,"条件付き継続":1,未確認:2,停止:3};
@@ -153,10 +130,10 @@ function refineState(r){
 }
 function targetSpeciesLabel(r){
   if(!r.upgradeTarget)return "未設定";
-  return targetFamily[String(r.upgradeTarget)]||r.upgradeTargetName||String(r.upgradeTarget);
+  return r.upgradeTargetLabel||r.upgradeTargetName||String(r.upgradeTarget);
 }
 function candidateLabel(c){
-  return targetFamily[String(c.speciesKey)]||c.name||String(c.speciesKey||"—");
+  return c.displayLabel||c.name||String(c.speciesKey||"—");
 }
 function targetSpeciesHtml(r,done){
   const xs=Array.isArray(r.targetCandidates)?r.targetCandidates:[];

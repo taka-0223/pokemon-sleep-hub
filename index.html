@@ -7,8 +7,8 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f6ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2530" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="./manifest.webmanifest?v=0.16">
-<link rel="stylesheet" href="./style.css?v=0.16">
+<link rel="manifest" href="./manifest.webmanifest?v=0.17">
+<link rel="stylesheet" href="./style.css?v=0.17">
 </head>
 <body>
 <header class="topbar">
@@ -18,7 +18,12 @@
     </span>
     <div><div class="eyebrow">POKÉMON SLEEP · CURRENT</div><h1>育成意思決定 Hub</h1></div>
   </div>
-  <div id="revision" class="revision"></div>
+  <div class="header-actions">
+    <div id="revision" class="revision"></div>
+    <button id="settingsButton" class="settings-button" aria-label="設定を開く">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+    </button>
+  </div>
 </header>
 
 <main id="swipeArea" class="shell">
@@ -87,15 +92,66 @@
 </nav>
 
 <dialog id="detailDialog"><button id="closeDialog" class="close" aria-label="閉じる">×</button><div id="detail"></div></dialog>
-<script src="./data.js?v=0.16"></script>
-<script src="./srp.js?v=0.16"></script>
-<script src="./app.js?v=0.16"></script>
+
+<dialog id="settingsDialog" class="settings-dialog">
+  <button id="closeSettings" class="close" aria-label="設定を閉じる">×</button>
+  <div class="settings-sheet">
+    <div class="settings-title"><span class="eyebrow">SETTINGS</span><h2>設定</h2></div>
+
+    <section class="settings-section">
+      <div class="settings-section-title">更新</div>
+      <div class="update-card">
+        <div><small>現在のバージョン</small><strong id="settingsVersion">—</strong><span id="settingsDataRevision">—</span></div>
+        <div id="updateStatus" class="update-status">更新状況を確認できます。</div>
+      </div>
+      <div class="settings-actions">
+        <button id="checkUpdate" class="settings-action primary">更新を確認</button>
+        <button id="applyUpdate" class="settings-action" hidden>更新を適用</button>
+        <button id="reloadApp" class="settings-action quiet">再読み込み</button>
+      </div>
+    </section>
+
+    <section class="settings-section">
+      <div class="settings-section-title">表示</div>
+      <label class="settings-row">
+        <span><b>テーマ</b><small>端末設定に追従するか固定します</small></span>
+        <select id="themeMode" class="settings-select">
+          <option value="system">端末に合わせる</option>
+          <option value="light">ライト</option>
+          <option value="dark">ダーク</option>
+        </select>
+      </label>
+    </section>
+
+    <section class="settings-section">
+      <div class="settings-section-title">厳選</div>
+      <label class="settings-row">
+        <span><b>完了済みを表示</b><small>オフにすると厳選中だけに絞ります</small></span>
+        <input id="showCompletedRefine" class="settings-toggle" type="checkbox">
+      </label>
+    </section>
+
+    <section class="settings-section">
+      <div class="settings-section-title">更新履歴</div>
+      <div id="updateHistory" class="update-history"></div>
+    </section>
+
+    <section class="settings-section">
+      <div class="settings-section-title">アプリ情報</div>
+      <dl id="appInfo" class="app-info"></dl>
+    </section>
+  </div>
+</dialog>
+<script src="./data.js?v=0.17"></script>
+<script src="./updates.js?v=0.17"></script>
+<script src="./srp.js?v=0.17"></script>
+<script src="./app.js?v=0.17"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;
-      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.16", { updateViaCache: "none" });
+      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.17", { updateViaCache: "none" });
       await reg.update();
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {

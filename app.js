@@ -1,5 +1,50 @@
 const D=window.APP_DATA||{individuals:[],roles:[],coverage:{},coverageMatrix:[],resources:{},events:[],meta:{}};
 const SRP=window.SRP_DATA||{meta:{status:"pending",label:"Species Role Percentile"},bySpecies:{}};
+const UPDATES=window.APP_UPDATES||[];
+const SETTINGS_KEY="pokemon-sleep-hub.settings.v1";
+const DEFAULT_SETTINGS={theme:"system",showCompletedRefine:true};
+function loadSettings(){
+  try{return {...DEFAULT_SETTINGS,...JSON.parse(localStorage.getItem(SETTINGS_KEY)||"{}")};}
+  catch(_){return {...DEFAULT_SETTINGS};}
+}
+let appSettings=loadSettings();
+const systemDark=window.matchMedia?window.matchMedia("(prefers-color-scheme: dark)"):null;
+let darkMediaRules=[];
+function captureDarkMediaRules(){
+  if(darkMediaRules.length)return;
+  for(const sheet of [...document.styleSheets]){
+    try{
+      for(const rule of [...sheet.cssRules]){
+        if(typeof CSSMediaRule!=="undefined"&&rule instanceof CSSMediaRule&&rule.media.mediaText.includes("prefers-color-scheme: dark")){
+          darkMediaRules.push(rule);
+        }
+      }
+    }catch(_){}
+  }
+}
+function updateThemeMeta(mode){
+  const dark=mode==="dark"||(mode==="system"&&systemDark?.matches);
+  const color=dark?"#1a2530":"#f5f6ee";
+  document.querySelectorAll('meta[name="theme-color"]').forEach(meta=>{
+    if(mode==="system"){
+      meta.content=meta.media?.includes("dark")?"#1a2530":"#f5f6ee";
+    }else meta.content=color;
+  });
+}
+function applyTheme(mode){
+  captureDarkMediaRules();
+  const normalized=["system","light","dark"].includes(mode)?mode:"system";
+  for(const rule of darkMediaRules){
+    rule.media.mediaText=normalized==="dark"?"all":normalized==="light"?"not all":"(prefers-color-scheme: dark)";
+  }
+  document.documentElement.dataset.theme=normalized;
+  document.documentElement.style.colorScheme=normalized==="system"?"light dark":normalized;
+  updateThemeMeta(normalized);
+}
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY,JSON.stringify(appSettings));
+}
+applyTheme(appSettings.theme);
 const $=s=>document.querySelector(s);
 const esc=s=>String(s==null?"—":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
 const views=["home","roster","refine","roles","plan"];
@@ -238,8 +283,9 @@ function renderRoster(){
   bindRows();
 }
 function renderRefine(){
-  const list=refiningRoles();
-  $("#refineList").innerHTML=list.length?list.map(r=>compactRole(r,true)).join(""):'<div class="lede">役割がありません。</div>';
+  let list=refiningRoles();
+  if(!appSettings.showCompletedRefine)list=list.filter(r=>!refineState(r).done);
+  $("#refineList").innerHTML=list.length?list.map(r=>compactRole(r,true)).join(""):'<div class="lede">表示対象の役割がありません。</div>';
 }
 function renderRoles(){
   const typ={食材:0,きのみ:1,スキル:2};
@@ -291,6 +337,93 @@ function detail(p){
 function bindRows(){
   document.querySelectorAll(".dense-row[data-id]").forEach(el=>el.onclick=()=>{if(suppressClick)return;const p=individualById[el.dataset.id];if(!p)return;$("#detail").innerHTML=detail(p);$("#detailDialog").showModal();});
 }
+
+function renderUpdateHistory(){
+  const root=$("#updateHistory");
+  if(!root)return;
+  root.innerHTML=UPDATES.length?UPDATES.map((u,i)=>
+    '<details class="update-entry" '+(i===0?'open':'')+'><summary><div><strong>v'+esc(u.version)+'</strong><span>'+esc(u.title)+'</span></div><time>'+esc(u.date)+'</time></summary>'+
+    '<ul>'+((u.items||[]).map(x=>'<li>'+esc(x)+'</li>').join(""))+'</ul></details>'
+  ).join(""):'<div class="settings-empty">更新履歴はまだありません。</div>';
+}
+function renderAppInfo(){
+  const info=[
+    ["アプリ","v"+(D.meta.appVersion||"—")],
+    ["データ",D.meta.revision||"—"],
+    ["データ更新日",D.meta.generatedAt||"—"],
+    ["手持ち",D.individuals.length+"体"],
+    ["役割",D.roles.length+"件"],
+    ["SRP",SRP.meta?.status==="ready"?"算出済み":"未算出"],
+    ["データ元",D.meta.source||"—"]
+  ];
+  $("#appInfo").innerHTML=info.map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd></div>').join("");
+}
+function renderSettings(){
+  $("#settingsVersion").textContent="app v"+(D.meta.appVersion||"—");
+  $("#settingsDataRevision").textContent="data "+(D.meta.revision||"—");
+  $("#themeMode").value=appSettings.theme;
+  $("#showCompletedRefine").checked=!!appSettings.showCompletedRefine;
+  $("#updateStatus").textContent="更新状況を確認できます。";
+  $("#applyUpdate").hidden=true;
+  renderUpdateHistory();
+  renderAppInfo();
+}
+function openSettings(){
+  renderSettings();
+  $("#settingsDialog").showModal();
+}
+function parseRemoteData(text){
+  const src=String(text||"").trim().replace(/^window\.APP_DATA=/,"").replace(/;$/,"");
+  return JSON.parse(src);
+}
+async function checkForUpdates(){
+  const status=$("#updateStatus"),apply=$("#applyUpdate"),check=$("#checkUpdate");
+  status.textContent="更新を確認しています…";
+  apply.hidden=true;
+  check.disabled=true;
+  try{
+    const reg=await navigator.serviceWorker?.getRegistration?.();
+    if(reg)await reg.update();
+    const res=await fetch("./data.js?update-check="+Date.now(),{cache:"no-store"});
+    if(!res.ok)throw new Error("HTTP "+res.status);
+    const remote=parseRemoteData(await res.text());
+    const appChanged=String(remote.meta?.appVersion||"")!==String(D.meta.appVersion||"");
+    const dataChanged=String(remote.meta?.revision||"")!==String(D.meta.revision||"");
+    if(appChanged||dataChanged){
+      const parts=[];
+      if(appChanged)parts.push("app v"+remote.meta.appVersion);
+      if(dataChanged)parts.push("data "+remote.meta.revision);
+      status.textContent="更新があります： "+parts.join(" / ");
+      apply.hidden=false;
+    }else{
+      status.textContent="最新です。 app v"+(D.meta.appVersion||"—")+" / data "+(D.meta.revision||"—");
+    }
+  }catch(e){
+    status.textContent="更新確認に失敗しました。通信状態を確認してください。";
+  }finally{
+    check.disabled=false;
+  }
+}
+async function applyLatestUpdate(){
+  const status=$("#updateStatus");
+  status.textContent="更新を適用しています…";
+  try{
+    if("caches" in window){
+      const keys=await caches.keys();
+      await Promise.all(keys.filter(k=>k.startsWith("pokemon-sleep-hub-")).map(k=>caches.delete(k)));
+    }
+    const reg=await navigator.serviceWorker?.getRegistration?.();
+    if(reg)await reg.update();
+  }catch(_){}
+  const url=new URL(location.href);
+  url.searchParams.set("_refresh",Date.now());
+  location.replace(url.toString());
+}
+function reloadApp(){
+  const url=new URL(location.href);
+  url.searchParams.set("_reload",Date.now());
+  location.replace(url.toString());
+}
 function showView(id,push){
   if(!views.includes(id))return;
   document.querySelectorAll(".view").forEach(x=>x.classList.toggle("active",x.id===id));
@@ -305,6 +438,24 @@ function showView(id,push){
 document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>showView(b.dataset.view,true));
 $("#closeDialog").onclick=()=>$("#detailDialog").close();
 $("#detailDialog").onclick=e=>{if(e.target===$("#detailDialog"))$("#detailDialog").close();};
+
+$("#settingsButton").onclick=openSettings;
+$("#closeSettings").onclick=()=>$("#settingsDialog").close();
+$("#settingsDialog").onclick=e=>{if(e.target===$("#settingsDialog"))$("#settingsDialog").close();};
+$("#themeMode").addEventListener("change",e=>{
+  appSettings.theme=e.target.value;
+  saveSettings();
+  applyTheme(appSettings.theme);
+});
+$("#showCompletedRefine").addEventListener("change",e=>{
+  appSettings.showCompletedRefine=e.target.checked;
+  saveSettings();
+  renderRefine();
+});
+$("#checkUpdate").onclick=checkForUpdates;
+$("#applyUpdate").onclick=applyLatestUpdate;
+$("#reloadApp").onclick=reloadApp;
+if(systemDark?.addEventListener)systemDark.addEventListener("change",()=>{if(appSettings.theme==="system")updateThemeMeta("system");});
 ["search","qualityFilter","typeFilter"].forEach(id=>$("#"+id).addEventListener("input",renderRoster));
 const swipeArea=$("#swipeArea");
 let swipeState=null;

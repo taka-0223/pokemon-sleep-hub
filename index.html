@@ -7,8 +7,8 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f6ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2530" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="./manifest.webmanifest?v=0.18">
-<link rel="stylesheet" href="./style.css?v=0.18">
+<link rel="manifest" href="./manifest.webmanifest?v=0.19">
+<link rel="stylesheet" href="./style.css?v=0.19">
 </head>
 <body>
 <header class="topbar">
@@ -55,6 +55,7 @@
 
   <section id="roles" class="view">
     <div class="page-title"><div><span class="eyebrow">ROLE MAP</span><h2>役割一覧</h2></div></div>
+    <p class="lede">現在の担当状況を確認する画面です。厳選候補や更新目標は「厳選」で確認できます。</p>
     <div id="roleList" class="compact-list"></div>
   </section>
 
@@ -142,16 +143,16 @@
     </section>
   </div>
 </dialog>
-<script src="./data.js?v=0.18"></script>
-<script src="./updates.js?v=0.18"></script>
-<script src="./srp.js?v=0.18"></script>
-<script src="./app.js?v=0.18"></script>
+<script src="./data.js?v=0.19"></script>
+<script src="./updates.js?v=0.19"></script>
+<script src="./srp.js?v=0.19"></script>
+<script src="./app.js?v=0.19"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;
-      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.18", { updateViaCache: "none" });
+      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.19", { updateViaCache: "none" });
       await reg.update();
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {

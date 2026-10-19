@@ -429,6 +429,8 @@ function openIndividual(id){
   const p=individualById[id];
   if(!p)return;
   $("#detail").innerHTML=detail(p);
+  const gateButton=$("#gateFromIndividual");
+  if(gateButton)gateButton.dataset.individualId=id;
   $("#detailDialog").showModal();
 }
 function bindRows(){

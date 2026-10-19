@@ -36,3 +36,13 @@ CURRENT.xlsxはPublic repoへコミットしません。生成済み `data.js` �
 ## Deployment
 
 mainへのpushでGitHub ActionsがJS/Pythonを検証し、SRP βを再生成してGitHub Pagesへデプロイします。
+
+## 判断前チェック（Data Sufficiency Gate v1.0 / UI v0.19）
+
+- 「育成・イベント」または個体詳細から必要時だけ開く、読み取り専用の前提確認画面です。
+- 方針の確認では全資源を要求しません。実行前に必要な値だけを選択して入力します。
+- 判定は `data-gate.js` の純粋関数で、結果は READY / PROVISIONAL / VERIFY / HOLD / MODEL_GAP の5種類です。
+- 博士送りは情報が揃ってもアプリから許可・実行できません。料理モデル未整備もユーザーの在庫不足と区別します。
+- 入力値は画面内の一時情報で、`CURRENT.xlsx` や `data.js`、ブラウザ保存領域には書き込みません。
+- 方針の正本はCURRENT r24の `C_DataPolicy` / `C_DecisionGate`、公開手持ちのSSOTスナップショットは引き続きr23です（r25のPR/SRP整合問題が解消するまで再生成しません）。
+- テスト: `node --test tests/data-gate.test.cjs`。CIはPRとmain pushでゲートを検証します。

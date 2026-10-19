@@ -3,6 +3,8 @@ name: Validate PWA
 on:
   push:
     branches: ["main"]
+  pull_request:
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -22,6 +24,9 @@ jobs:
           node --check data.js
           node --check srp.js
           node --check updates.js
+          node --check data-gate.js
+          node --check data-gate-ui.js
+          node --test tests/data-gate.test.cjs
           grep -q '"status":"ready"' srp.js
 
       - name: Verify SRP generator

@@ -86,11 +86,46 @@ def first(d,*keys):
         if k in d and d[k] not in (None,""): return d[k]
     return None
 
+def verify_versioned_source_revision(wb, xlsx):
+    """Refuse an inconsistent immutable CURRENT_rNN workbook before output.
+
+    The private workbook remains the SSOT; no published values are used as a
+    fallback.  Generic unversioned filenames retain the legacy test/CLI path.
+    """
+    suffix = re.search(r"_r(\d+)\.xlsx$", Path(xlsx).name, re.I)
+    if not suffix:
+        return None
+    expected_suffix = "r" + suffix.group(1)
+    rules = [r for r in dict_rows(wb.get("M_Rules", []), "rule_id")
+             if r.get("rule_id") == "DATA_REVISION"]
+    if len(rules) != 1:
+        raise ValueError("CURRENT requires exactly one DATA_REVISION row")
+    revision = str(first(rules[0], "value", "setting_value") or "")
+    displayed = []
+    for row in wb.get("M_Rules", [])[:5]:
+        for i, val in enumerate(row[:-1]):
+            if val == "Data revision":
+                displayed.append(row[i + 1])
+    logs = dict_rows(wb.get("H_ChangeLog", []), "log_id")
+    latest_log = next((m.group(0) for log in reversed(logs)
+                       if log.get("type") == "revision"
+                       if (m := re.search(r"\d{4}-\d{2}-\d{2}-r\d+", str(log.get("change") or "")))), None)
+    if (not revision.endswith("-" + expected_suffix)
+            or displayed != [revision] or latest_log != revision):
+        raise ValueError(
+            "CURRENT revision mismatch: filename=" + expected_suffix
+            + ", DATA_REVISION=" + revision
+            + ", displayed=" + repr(displayed)
+            + ", change_log=" + str(latest_log)
+        )
+    return revision
+
 def main():
     if len(sys.argv)<2:
         raise SystemExit("usage: build_data.py CURRENT.xlsx [data.js]")
     xlsx=Path(sys.argv[1]); target=Path(sys.argv[2] if len(sys.argv)>2 else "data.js")
     wb=read_xlsx(xlsx)
+    verify_versioned_source_revision(wb, xlsx)
     inds=dict_rows(wb.get("P_Individuals",[]),"individual_id")
     decisions=dict_rows(wb.get("D_Decisions",[]),"individual_id")
     roles=dict_rows(wb.get("P_RoleSlots",[]),"role_slot_id")

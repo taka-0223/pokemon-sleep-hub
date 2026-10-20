@@ -124,6 +124,42 @@ class TestFailClosed(unittest.TestCase):
         self.assertEqual(gate.validate(old,copy.deepcopy(old))["status"],"PASS")
 
 
+class TestHistoricalMeasurementRecovery(unittest.TestCase):
+    """A provenance-backed append is permissible only for the exact reviewed delta."""
+
+    def recovery_pair(self):
+        old = baseline()
+        new = copy.deepcopy(old)
+        recorded = {"lv":50, "metric":"総合PR", "pr":87.3, "tool":"historical simulation"}
+        new["individuals"][0]["measurements"].append(recorded)
+        new["meta"]["revision"] = "2026-10-21-r30"
+        manifest = {
+            "baseline_sha256":"synthetic", "current_sha256":"synthetic",
+            "expected_revision":"2026-10-21-r30", "allowed_new_ids":[],
+            "allowed_changes":[{
+                "path":"individuals.IND-0001.measurements",
+                "before":old["individuals"][0]["measurements"],
+                "after":new["individuals"][0]["measurements"],
+                "source":"verifiable historical workflow artifact",
+            }],
+        }
+        return old,new,manifest
+
+    def test_exact_historical_measurement_append_passes_only_technical_gate(self):
+        old,new,manifest=self.recovery_pair()
+        result=gate.validate(old,new,manifest)
+        self.assertEqual(result["status"],"PASS",result["problems"])
+        self.assertEqual(len(new["individuals"][0]["measurements"]),2)
+        self.assertEqual(old["individuals"][0]["measurements"][0],new["individuals"][0]["measurements"][0])
+
+    def test_measurement_manifest_does_not_approve_unrelated_tier_change(self):
+        old,new,manifest=self.recovery_pair()
+        new["individuals"][0]["speciesGrade"]="S"
+        result=gate.validate(old,new,manifest)
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertIn("unapproved_change",result["problems_by_type"])
+
+
 class TestCurrentRevisionIntegrity(unittest.TestCase):
     def test_filename_revision_disagrees_with_current_rule(self):
         rows=fixture()  # M_Rules claims r26

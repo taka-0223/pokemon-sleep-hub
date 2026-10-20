@@ -231,18 +231,30 @@ def main():
 
     def coverage(t):
         return [r for r in app_roles if r["type"]==t]
-    # P_Account is a dated ledger, not an account_key/value table.
-    # Later snapshot rows supersede earlier rows with the same key.  Keep None
-    # for unknown quantities and preserve numeric zero as a known zero.
+    # P_Account is a historical ledger.  A later physical row is not
+    # necessarily a newer observation (archived unknown keys can be appended).
+    # Never publish inferred/approximate counts as confirmed numeric balances.
     resources={}
+    resource_dates={}
     for a in account:
         if a.get("category") not in ("resource", "status", "event"):
-            continue  # Do not expose friendship/model/other private ledger data.
+            continue  # Never expose friendship/private planning fields.
         key=first(a,"key")
         if not key: continue
-        resources[str(key)]={
-          "value":first(a,"value_num"),
+        key=str(key)
+        observed_at=str(first(a,"snapshot_date") or "")
+        if key in resource_dates and observed_at < resource_dates[key]:
+            continue  # Historical backfill must not overwrite newer evidence.
+        resource_dates[key]=observed_at
+        certainty=str(first(a,"certainty") or "unspecified")
+        numeric=first(a,"value_num")
+        if certainty not in ("confirmed", "unspecified"):
+            numeric=None  # "inferred", "approx", "unknown" aren't a confirmed count.
+        resources[key]={
+          "value":numeric,
           "text":first(a,"value_text"),
+          "certainty":certainty,
+          "observedAt":observed_at or None,
         }
 
     revision="CURRENT"

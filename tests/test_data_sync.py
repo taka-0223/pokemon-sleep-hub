@@ -62,13 +62,64 @@ class TestPAccountMigration(unittest.TestCase):
     def test_resource_values_zero_is_not_null_and_latest_wins(self):
         d,_=snapshot()
         self.assertEqual(d["meta"]["revision"],"2026-10-20-r26")
-        self.assertEqual(d["resources"]["dream_shard"],{"value":0,"text":"使い切り"})
-        self.assertEqual(d["resources"]["universal_candy_s"],{"value":None,"text":"未確認"})
-        self.assertEqual(d["resources"]["boost"],{"value":10,"text":"達成"})
+        self.assertEqual(d["resources"]["dream_shard"],{"value":0,"text":"使い切り","certainty":"confirmed","observedAt":"2026-10-20"})
+        self.assertEqual(d["resources"]["universal_candy_s"],{"value":None,"text":"未確認","certainty":"unknown","observedAt":"2026-10-20"})
+        self.assertEqual(d["resources"]["boost"],{"value":10,"text":"達成","certainty":"confirmed","observedAt":"2026-10-20"})
         self.assertNotIn("secret_fl",d["resources"])
         self.assertNotIn("mewtwo_level",d["resources"])
         self.assertNotIn("private note",repr(d))
         self.assertEqual(len(d["individuals"]),2)
+    def test_old_append_does_not_replace_new_confirmed_snapshot(self):
+        rows=copy.deepcopy(fixture())
+        rows["P_Account"].append([
+            "ACC-7","2026-09-01","resource","dream_shard",9999,
+            "旧時点の数字","confirmed","historical","private note"
+        ])
+        d,_=snapshot(rows)
+        self.assertEqual(d["resources"]["dream_shard"]["value"],0)
+        self.assertEqual(d["resources"]["dream_shard"]["observedAt"],"2026-10-20")
+
+    def test_inferred_and_approximate_balances_are_not_numeric_truth(self):
+        rows=copy.deepcopy(fixture())
+        rows["P_Account"] += [
+            ["ACC-8","2026-10-20","resource","foongus_candy",40,
+             "66から26減ったと仮定","inferred","calculation","private note"],
+            ["ACC-9","2026-10-20","resource","main_skill_seed",8,
+             "約8個","approx","user","private note"]
+        ]
+        d,_=snapshot(rows)
+        self.assertIsNone(d["resources"]["foongus_candy"]["value"])
+        self.assertEqual(d["resources"]["foongus_candy"]["certainty"],"inferred")
+        self.assertIsNone(d["resources"]["main_skill_seed"]["value"])
+        self.assertEqual(d["resources"]["main_skill_seed"]["text"],"約8個")
+        self.assertNotIn("private note",repr(d))
+
+    def test_historical_unknown_keys_are_retained_as_null(self):
+        rows=copy.deepcopy(fixture())
+        rows["P_Account"] += [
+            ["ACC-10","2026-10-15","resource","larvitar_candy",None,
+             "Lv25到達後の残数未同期","unknown","public-snapshot","private note"],
+            ["ACC-11","2026-10-15","resource","paldean_wooper_candy",None,
+             "Lv23到達後の残数未同期","unknown","public-snapshot","private note"]
+        ]
+        d,_=snapshot(rows)
+        for key in ("larvitar_candy","paldean_wooper_candy"):
+            self.assertIn(key,d["resources"])
+            self.assertIsNone(d["resources"][key]["value"])
+            self.assertEqual(d["resources"][key]["certainty"],"unknown")
+            self.assertEqual(d["resources"][key]["observedAt"],"2026-10-15")
+
+    def test_legacy_unspecified_count_is_preserved_but_labeled(self):
+        rows=copy.deepcopy(fixture())
+        rows["P_Account"].append([
+            "ACC-12","2026-10-06","resource","mewtwo_candy",270,
+            "2026-10-06時点","", "user", "private note"
+        ])
+        d,_=snapshot(rows)
+        self.assertEqual(d["resources"]["mewtwo_candy"]["value"],270)
+        self.assertEqual(d["resources"]["mewtwo_candy"]["certainty"],"unspecified")
+        self.assertEqual(d["resources"]["mewtwo_candy"]["observedAt"],"2026-10-06")
+
     def test_off_scenario_is_not_mixed_with_formal_pr(self):
         d,_=snapshot()
         i=d["individuals"][0]

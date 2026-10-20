@@ -1,0 +1,41 @@
+name: Guard public data sync
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout with baseline history
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Verify generator and change-gate unit tests
+        run: |
+          python3 -m py_compile scripts/build_data.py scripts/check_data_sync.py
+          python3 -m unittest discover -s tests -p 'test_data_sync.py' -v
+      - name: Block unreviewed public snapshot changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          set -eu
+          if [ -z "$BASE_SHA" ] || ! git cat-file -e "$BASE_SHA^{commit}"; then
+            echo "ERROR: cannot locate comparison baseline. Failing closed."
+            exit 1
+          fi
+          git show "$BASE_SHA:data.js" > /tmp/pokesleep-data-baseline.js
+          if [ -f config/data-sync-approval.json ]; then
+            python3 scripts/check_data_sync.py \
+              --baseline /tmp/pokesleep-data-baseline.js --candidate data.js \
+              --manifest config/data-sync-approval.json
+          else
+            python3 scripts/check_data_sync.py \
+              --baseline /tmp/pokesleep-data-baseline.js --candidate data.js
+          fi

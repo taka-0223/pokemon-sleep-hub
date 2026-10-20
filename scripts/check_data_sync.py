@@ -153,6 +153,12 @@ def validate(baseline, candidate, allow=None, current=None, base_path=None, cand
             block("source_mismatch","CURRENT RoleSlot IDs mismatch")
         if set(current["coverage_ids"])!=set(c_cover):
             block("source_mismatch","CURRENT Coverage IDs mismatch")
+        filename_revision=current.get("filename_revision")
+        if filename_revision and not str(expected_revision).endswith("-"+filename_revision):
+            block("source_revision_conflict",f"CURRENT filename says {filename_revision}, but M_Rules.DATA_REVISION={expected_revision}")
+        change_log_revision=current.get("change_log_revision")
+        if change_log_revision and change_log_revision != expected_revision:
+            block("source_revision_conflict",f"H_ChangeLog latest revision is {change_log_revision}, but M_Rules.DATA_REVISION={expected_revision}")
 
     kinds=dict(sorted(Counter(x["type"] for x in problems).items()))
     return {
@@ -181,7 +187,19 @@ def load_current(path):
     if not rule: raise ValueError("CURRENT has no DATA_REVISION rule")
     inds=dict_rows(w.get("P_Individuals",[]),"individual_id")
     active=lambda x: x.get("active") not in (False,0,"False", "false")
-    return {"revision":rule["value"],"active_ids":[x["individual_id"] for x in inds if active(x)],
+    filename_match=re.search(r"_r(\d+)\.xlsx$",Path(path).name,re.I)
+    change_log=dict_rows(w.get("H_ChangeLog",[]),"log_id")
+    latest_log_revision=None
+    for row in reversed(change_log):
+        if row.get("type") != "revision": continue
+        match=re.search(r"\d{4}-\d{2}-\d{2}-r\d+",str(row.get("change") or ""))
+        if match:
+            latest_log_revision=match.group(0)
+            break
+    return {"revision":rule["value"],
+            "filename_revision":"r"+filename_match.group(1) if filename_match else None,
+            "change_log_revision":latest_log_revision,
+            "active_ids":[x["individual_id"] for x in inds if active(x)],
             "role_ids":[x["role_slot_id"] for x in dict_rows(w.get("P_RoleSlots",[]),"role_slot_id")],
             "coverage_ids":[x["coverage_id"] for x in dict_rows(w.get("P_RoleCoverage",[]),"coverage_id")]}
 

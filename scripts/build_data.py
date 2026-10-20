@@ -97,7 +97,7 @@ def main():
     assessments=dict_rows(wb.get("M_SpeciesAssessment",[]),"species_key")
     measurements=dict_rows(wb.get("L_Measurements",[]),"individual_id")
     species=dict_rows(wb.get("M_Species",[]),"species_key")
-    account=dict_rows(wb.get("P_Account",[]),"account_key")
+    account=dict_rows(wb.get("P_Account",[]),"key")
     rules=dict_rows(wb.get("M_Rules",[]),"rule_id")
     role_coverage=dict_rows(wb.get("P_RoleCoverage",[]),"coverage_id")
 
@@ -140,7 +140,13 @@ def main():
         xs=sorted(xs,key=lambda a:(0 if a.get("species_key")==preferred else 1,grade_order.get(a.get("grade"),9),species_name.get(a.get("species_key")) or str(a.get("species_key") or "")))
         return [{"speciesKey":a.get("species_key"),"name":species_name.get(a.get("species_key")) or a.get("species_key"),"displayLabel":species_display_label(a.get("species_key")),"grade":a.get("grade"),"preferred":a.get("species_key")==preferred} for a in xs]
     meas={}
-    for m in measurements: meas.setdefault(m.get("individual_id"),[]).append(m)
+    for m in measurements:
+        # Scenario-only measurements are not formal individual performance.
+        # In particular, the silver-seed ON investment scenario must not be
+        # mixed with the existing OFF-labelled published measurement series.
+        if "investment scenario" in str(m.get("settings") or "").lower():
+            continue
+        meas.setdefault(m.get("individual_id"),[]).append(m)
 
     metric_for={"きのみ":"きのみPR","食材":"食材PR","スキル":"スキル発動PR"}
     app=[]
@@ -190,11 +196,19 @@ def main():
 
     def coverage(t):
         return [r for r in app_roles if r["type"]==t]
+    # P_Account is a dated ledger, not an account_key/value table.
+    # Later snapshot rows supersede earlier rows with the same key.  Keep None
+    # for unknown quantities and preserve numeric zero as a known zero.
     resources={}
     for a in account:
-        key=first(a,"account_key","resource_key","key")
+        if a.get("category") not in ("resource", "status", "event"):
+            continue  # Do not expose friendship/model/other private ledger data.
+        key=first(a,"key")
         if not key: continue
-        resources[str(key)]={"value":first(a,"value","amount","count"),"text":first(a,"note","text","memo")}
+        resources[str(key)]={
+          "value":first(a,"value_num"),
+          "text":first(a,"value_text"),
+        }
 
     revision="CURRENT"
     for rr in rules:

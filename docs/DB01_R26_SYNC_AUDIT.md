@@ -45,19 +45,28 @@
 
 このPRのCIチェックは、未承認公開への**警告とマージ前ゲート**として機能する。GitHub Pagesがmainへの直接push時に独立して実行される構成では、CIの失敗だけで配信停止を技術的に保証できない。直接mainにデータ更新をpushしない運用と、必要ならbranch protectionで必須チェックを設定する運用を併用すること。
 
+## 継続監査：r28→r29（2026-10-20 JST）
 
-## 追加監査｜2026-10-20：当時の一次測定原本を回収
+このセクションの最新SSOTは、ライブラリ `/ゲーム：ポケモンスリープ/pokemon_sleep_decision_system_CURRENT_r29.xlsx`。上のr26は過去の再現基準であり、最新正本ではない。
 
-- [GitHub Actions #37199678249](https://github.com/taka-0223/pokemon-sleep-hub/actions/runs/37199678249) の成功実行を特定し、成果物 `pr-results.zip`（artifact ID 11302453018）を実際に回収。
-- ZIP SHA-256: `cb61e5785ced43c582ec9bd46cde199b12aa6a69ba36ab3f06bb4201ed7a9d9c`（GitHub記載のartifact digestと一致）。
-- 原本 `pr-results.json` は2026-10-04T11:45:30.244Z、`source: pokesle-simulator tmp-evaluate`、`silverSeed: false` と記録。
-- 当時の[測定スクリプト（固定SHAのコミット）](https://github.com/taka-0223/pokemon-sleep-hub/blob/fee5cd64ada23189427d0c58a9ce385608bb26c8/scripts/measure_missing_pr.cjs)を取得。食材3枠・性格・サブスキル5枠は現行CURRENT r28の9個体と完全一致。原本の9×6＝54測定値は既存公開r23 `data.js` の該当54値と完全一致。
-- **確認の限界**：測定スクリプトは設定の存在時に`silverSeed`をOFFへ書き換え、原本にもOFFと記録した。しかしWeb版シミュレータを再読込した後の有効設定の読み戻しログはなく、上流のWeb版デプロイコミットも固定していない。したがって「当時の正式測定記録は存在した」「OFFを意図して測定した」ことは確認できるが、実行時効果までは独立検証済みと扱わない。
-- 個別レビュー用の54行追加候補JSONを生成済み。**このPRへの数値混入・CURRENTへの自動復元は行わない。** 正式な再採録は監査原本と承認を照合して別途実施する。
+- r28で `M_Rules!J3 = 2026-10-20-r28`、`DATA_REVISION`（D19）=`2026-10-20-r26`、最終ログ=`2026-10-20-r28` が不一致。
+- r29では `M_Rules!J3` と `D19` を `2026-10-20-r29` に統一し、`LOG-105` を追記。
+- 変更前後の実ファイル全セル照合で、変更は上記2セル＋追記6セルの**合計8セルのみ**。既存165測定・42個体登録（有効41）・33 RoleSlot・47 Coverage・判断・資源の内容は変更せず。
+- 既存`build_data.py`では不整合ブックを生成できたため、`verify_versioned_source_revision()`を追加。バージョン付きCURRENTでは「ファイル名・表示revision・DATA_REVISION・最新変更履歴」の一致を確認し、不一致なら出力前に例外停止。
+- 不整合のあるr28で生成を試すと`ValueError: CURRENT revision mismatch`、新r29では正常に生成。合成単体テストは**16件成功**。最新ブランチでのCIはGitHub Actions結果を参照。
+- r29候補データは、**有効41個体、主要PR27、RoleSlot33、Coverage47、資源16キー**。バイト同一の再生成を確認。**正式公開用ではない**。
+- 公開r23との再照合では、Tier差分16個体、優先順位差分13個体、PR消失9個体、資源キー2件不足、役割マスター33件に何らかの配信フィールド差分がある。RoleSlotのIDは33件すべて保持。これらの差分は有効性を自動判定していないため、未承認のまま残す。
 
-### r27/r28へ正本が進んだことによる新たな公開阻害
+### 歴史的PR54件の測定条件に関する追加根拠
 
-- 最新ライブラリの正本は `pokemon_sleep_decision_system_CURRENT_r28.xlsx`。r27でミュウツー1体目 `IND-0042` を追加し、イベント2体目 `IND-0005` はLv30へ。r28でタマゲタケ `IND-0034` Lv25、サナギラス `IND-0018` Lv26・おひるね島滞在を記録。どちらも既存測定165件は維持。
-- **revisionの内部矛盾**：r27/r28の `H_ChangeLog` はそれぞれ r27/r28への更新を記録するが、`M_Rules.DATA_REVISION` は`2026-10-20-r26`のまま。既存`build_data.py`はこの欄で `data.js.meta.revision` を生成するため、r28から生成してもr26表示となる。
-- `scripts/check_data_sync.py` の追加ガードは、CURRENTファイル名とM_Rulesのrevision不一致、またはH_ChangeLogとM_Rulesのrevision不一致を検知して `source_revision_conflict` でBLOCKEDにする。合成ファイルによる3テストを追加。
-- r28の実ファイル修正は行っていない。CURRENT修復前にmain公開へ進まないこと。
+- 保存ワークフロー`37199678249`の元スクリプトは`tmpEvaluate.silverSeed`が存在すると各キーを`false`にして保存後リロードしている。
+- 測定日以前（2026-09-29）の上流シミュレータ`733701bbe6a625241c7701e76d830e0d8ff68c64`のソースでは、`default-config.ts`が銀種既定`true`と`tmpEvaluate`複製を設定、`models/config.ts`が`watchEffect`から`config.save()`により`localStorage.config`を保持。元スクリプトの設定変更・再読込の経路が成立する蓋然性は高い。
+- ただし実行時にOFFの全設定を再読取したログ、上流の正確な配信ビルドSHAは残っていない。原本が`silverSeed:false`と記録した**測定結果54件の存在・値・入力個体との一致は確定**できるが、現行正式PR計算条件への完全互換・正式採用は依然として未承認。
+- 元の測定値を`L_Measurements`へ自動追記せず、レビュー用候補JSONをライブラリに保管。公開`data.js`からの逆流・ゼロ補完・既存PR再計算は実施していない。
+
+### 保留の解除条件
+
+1. 54件のhistoricalPRが旧公開値であることと、正式PRとして保持する際の条件表記・ユーザー承認を一致させる。
+2. 公開版とCURRENTの種族Tier・優先順位・役割変更の根拠を照合し、意図した差分だけ許可する。
+3. 資源2キーの欠測と最新値／スナップショットの扱いを決める。未確認数値を0で埋めない。
+4. 最新CURRENTを基に検証・承認manifestを作り、fail-closedゲートPASS後にPR→別途ユーザー承認→mainマージ→公開画面検証。

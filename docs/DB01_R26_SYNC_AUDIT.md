@@ -44,3 +44,20 @@
 - 安全なr26生成物・承認manifestを用意した後、**別途ユーザーがmainマージ・本番公開を承認する。**
 
 このPRのCIチェックは、未承認公開への**警告とマージ前ゲート**として機能する。GitHub Pagesがmainへの直接push時に独立して実行される構成では、CIの失敗だけで配信停止を技術的に保証できない。直接mainにデータ更新をpushしない運用と、必要ならbranch protectionで必須チェックを設定する運用を併用すること。
+
+
+## 追加監査｜2026-10-20：当時の一次測定原本を回収
+
+- [GitHub Actions #37199678249](https://github.com/taka-0223/pokemon-sleep-hub/actions/runs/37199678249) の成功実行を特定し、成果物 `pr-results.zip`（artifact ID 11302453018）を実際に回収。
+- ZIP SHA-256: `cb61e5785ced43c582ec9bd46cde199b12aa6a69ba36ab3f06bb4201ed7a9d9c`（GitHub記載のartifact digestと一致）。
+- 原本 `pr-results.json` は2026-10-04T11:45:30.244Z、`source: pokesle-simulator tmp-evaluate`、`silverSeed: false` と記録。
+- 当時の[測定スクリプト（固定SHAのコミット）](https://github.com/taka-0223/pokemon-sleep-hub/blob/fee5cd64ada23189427d0c58a9ce385608bb26c8/scripts/measure_missing_pr.cjs)を取得。食材3枠・性格・サブスキル5枠は現行CURRENT r28の9個体と完全一致。原本の9×6＝54測定値は既存公開r23 `data.js` の該当54値と完全一致。
+- **確認の限界**：測定スクリプトは設定の存在時に`silverSeed`をOFFへ書き換え、原本にもOFFと記録した。しかしWeb版シミュレータを再読込した後の有効設定の読み戻しログはなく、上流のWeb版デプロイコミットも固定していない。したがって「当時の正式測定記録は存在した」「OFFを意図して測定した」ことは確認できるが、実行時効果までは独立検証済みと扱わない。
+- 個別レビュー用の54行追加候補JSONを生成済み。**このPRへの数値混入・CURRENTへの自動復元は行わない。** 正式な再採録は監査原本と承認を照合して別途実施する。
+
+### r27/r28へ正本が進んだことによる新たな公開阻害
+
+- 最新ライブラリの正本は `pokemon_sleep_decision_system_CURRENT_r28.xlsx`。r27でミュウツー1体目 `IND-0042` を追加し、イベント2体目 `IND-0005` はLv30へ。r28でタマゲタケ `IND-0034` Lv25、サナギラス `IND-0018` Lv26・おひるね島滞在を記録。どちらも既存測定165件は維持。
+- **revisionの内部矛盾**：r27/r28の `H_ChangeLog` はそれぞれ r27/r28への更新を記録するが、`M_Rules.DATA_REVISION` は`2026-10-20-r26`のまま。既存`build_data.py`はこの欄で `data.js.meta.revision` を生成するため、r28から生成してもr26表示となる。
+- `scripts/check_data_sync.py` の追加ガードは、CURRENTファイル名とM_Rulesのrevision不一致、またはH_ChangeLogとM_Rulesのrevision不一致を検知して `source_revision_conflict` でBLOCKEDにする。合成ファイルによる3テストを追加。
+- r28の実ファイル修正は行っていない。CURRENT修復前にmain公開へ進まないこと。

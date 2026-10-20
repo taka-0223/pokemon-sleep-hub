@@ -70,3 +70,18 @@
 2. 公開版とCURRENTの種族Tier・優先順位・役割変更の根拠を照合し、意図した差分だけ許可する。
 3. 資源2キーの欠測と最新値／スナップショットの扱いを決める。未確認数値を0で埋めない。
 4. 最新CURRENTを基に検証・承認manifestを作り、fail-closedゲートPASS後にPR→別途ユーザー承認→mainマージ→公開画面検証。
+
+
+## 2026-10-20 継続監査：r23公開スナップショットに由来する分岐
+
+**比較の再現：** 非公開CURRENT r23とr29から、同じ修正済み\`build_data.py\`で別ファイルへドライラン生成。r23再生成は有効38件／主指標PR27件、r29再生成は41件／PR27件。**既存個体のSpecies Tier・priority_rank・主指標PRには両者間で差がない**。したがって公開r23のTier16件・順位13件・PR9件の相違は、r24〜r29の更新によって新たに生じたものではない。
+
+**直接上書きの証拠：** 2026-10-04のGitHub履歴 [one-time public snapshot patch](https://github.com/taka-0223/pokemon-sleep-hub/blob/61ff6a7b1b1711e753e043f69b9f4f470dcf7589/scripts/apply_r13_snapshot.py) において、当時の公開\`data.js\`へ直接「9個体×6＝54 PR値」「12個体のSpecies Tier」「13 RoleSlotの候補表示」を投入した。現在のTier相違16個体のうち11個体はこの12件の上書き対象と一致する。残る5件および順位13件の個別の上書き原因はこのスクリプト単体では特定できない。過去の公開値を新CURRENTへ暗黙に再採用しない。
+
+**54 PRの一次測定原本：** [Measure missing Pokemon PR実行](https://github.com/taka-0223/pokemon-sleep-hub/actions/runs/37199678249) と [Artifact](https://github.com/taka-0223/pokemon-sleep-hub/actions/runs/37199678249/artifacts/11302453018) を参照。保存ZIP SHA-256は \`cb61e5785ced43c582ec9bd46cde199b12aa6a69ba36ab3f06bb4201ed7a9d9c\`。54 PR値は旧公開版と完全一致、測定対象9個体の食材・性格・5サブスキルも最新CURRENTと一致。現行CURRENTのL_Measurementsは165件で不変であり、保留中の54行には既存ID・測定組み合わせの衝突がない。
+
+**銀種OFF条件の証拠と限界：** 元の測定コードは\`localStorage.config.tmpEvaluate.silverSeed\`をすべてfalseに設定してページ再読込している。[2026-10-04以前の上流シミュレータの固定コミット](https://github.com/reimer0204/pokesle-simulator/tree/733701bbe6a625241c7701e76d830e0d8ff68c64)で、再読込後の\`tmpEvaluate\`が評価時に使用される経路を確認。ただし当時ホスト上で実際に配信された上流コミット・評価直前の実効設定の再読込ログは残っていない。したがって historical evidence は再現可能な出典を伴うが、「実効OFFを完全立証した」とは記載しない。
+
+**レビュー用差分台帳：** Tier16、priority13、歴史PR54、資源2欠測、RoleSlot本体の更新3件を非公開ライブラリへ保存。**正式採用・CURRENTへの54値の追記・公開用data.jsへの値の復旧は未実施**。
+
+**安全性の結論：** 既存PR消失・未承認Tier/priority差分・資源キー消失を検出する\`check_data_sync.py\`のfail-closed制約は必要。過去の\`apply_r13_snapshot.py\`を再実行すること、公開\`data.js\`をCURRENTの代用SSOTにすること、測定値や評価をコード定数として合わせ込むことは禁止。

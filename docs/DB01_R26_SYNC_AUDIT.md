@@ -85,3 +85,15 @@
 **レビュー用差分台帳：** Tier16、priority13、歴史PR54、資源2欠測、RoleSlot本体の更新3件を非公開ライブラリへ保存。**正式採用・CURRENTへの54値の追記・公開用data.jsへの値の復旧は未実施**。
 
 **安全性の結論：** 既存PR消失・未承認Tier/priority差分・資源キー消失を検出する`check_data_sync.py`のfail-closed制約は必要。過去の`apply_r13_snapshot.py`を再実行すること、公開`data.js`をCURRENTの代用SSOTにすること、測定値や評価をコード定数として合わせ込むことは禁止。
+
+## 2026-10-21｜r30 historical measurement restoration (private SSOT)
+
+- Latest private SSOT is `pokemon_sleep_decision_system_CURRENT_r30.xlsx` (`2026-10-21-r30`). The prior r29 remains preserved in private Library; neither workbook is part of this public PR.
+- After provenance review, the historical GitHub Actions artifact from [2026-10-04 run #37199678249](https://github.com/taka-0223/pokemon-sleep-hub/actions/runs/37199678249) was used to **append exactly 54 original measured observations**, with new `MEAS-0166..MEAS-0219` IDs. Prior 165 measurements remain byte-equivalent by logical cells. Original 9 individual inputs and all 54 PR values matched the archived run and prior public r23.
+- This is restoration of an archived measurement result, **not a fresh calculation**. The historical script explicitly requested silver-seed OFF and reloaded; effective runtime state was not independently logged. This limitation is recorded per restored measurement in `settings` / `source_note`.
+- The only other private-workbook changes are revision metadata `M_Rules!J3`, `M_Rules!J4`, `M_Rules!D19` and `LOG-106` (6 cells). No species tier, decisions, active individual, role, coverage or resource records were altered.
+- r29→r30 separate-generation diff: 41 active individuals unchanged, 33 roles, 47 role coverage and 16 resource keys unchanged. PR-measured individuals **27→36**, with exactly nine previously absent `primaryPR` values restored to their originally published values.
+- Historical-only per-field manifest: **36 approved output-field changes** (9 × `measurements`, `primaryPR`, `primaryEvalLv`, `topPercent`). With this exact manifest, the r29→r30 fail-closed comparison PASSes. The manifest is strictly scoped: it **does not approve publishing the whole r30 data.js** or any grade/priority/role/resource drift versus actual public r23.
+- CURRENT SHA-256: `4b57d7bade41f503c97737fa9b7d99c5dfb010b8eb4b6728a3a33359f224e1f9`. Generated r30 review-only data.js SHA-256: `a3eb2093d5a7f9d6f909ae52432dd9a2707b25732628245da834398dbadf4f28`.
+- Regression suites include explicit tests that an exact historical measurement addition can pass the reviewed-delta gate **but cannot authorize an unrelated Species Tier change**.
+- **Full publication remains blocked**: existing public-vs-CURRENT Species Tier/priority/role-display drift remains unapproved and 2 previously published resource keys are absent in CURRENT. The `main` branch and public r23 data.js remain unchanged. No merge/deploy authorization is implied by this restoration.

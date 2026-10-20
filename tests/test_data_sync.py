@@ -123,4 +123,40 @@ class TestFailClosed(unittest.TestCase):
         old=baseline()
         self.assertEqual(gate.validate(old,copy.deepcopy(old))["status"],"PASS")
 
+
+class TestCurrentRevisionIntegrity(unittest.TestCase):
+    def test_filename_revision_disagrees_with_current_rule(self):
+        rows=fixture()  # M_Rules claims r26
+        with mock.patch.object(build_data,"read_xlsx",return_value=rows):
+            c=gate.load_current("/private/pokemon_sleep_decision_system_CURRENT_r28.xlsx")
+        old=baseline()
+        r=gate.validate(old,copy.deepcopy(old),current=c)
+        self.assertEqual(r["status"],"BLOCKED")
+        self.assertIn("source_revision_conflict",r["problems_by_type"])
+
+    def test_change_log_revision_disagrees_with_current_rule(self):
+        rows=fixture()
+        rows["H_ChangeLog"]=[
+            ["log_id","date","type","target","change","reason"],
+            ["LOG-104","2026-10-20","revision","CURRENT","Data revisionを2026-10-20-r28へ更新","latest"],
+        ]
+        with mock.patch.object(build_data,"read_xlsx",return_value=rows):
+            c=gate.load_current("/private/pokemon_sleep_decision_system_CURRENT_r26.xlsx")
+        old=baseline()
+        r=gate.validate(old,copy.deepcopy(old),current=c)
+        self.assertEqual(r["status"],"BLOCKED")
+        self.assertIn("source_revision_conflict",r["problems_by_type"])
+
+    def test_consistent_revision_and_change_log_is_valid(self):
+        rows=fixture()
+        rows["H_ChangeLog"]=[
+            ["log_id","date","type","target","change","reason"],
+            ["LOG-096","2026-10-20","revision","CURRENT","Data revisionを2026-10-20-r26へ更新","latest"],
+        ]
+        with mock.patch.object(build_data,"read_xlsx",return_value=rows):
+            c=gate.load_current("/private/pokemon_sleep_decision_system_CURRENT_r26.xlsx")
+        old=baseline()
+        r=gate.validate(old,copy.deepcopy(old),current=c)
+        self.assertNotIn("source_revision_conflict",r["problems_by_type"])
+
 if __name__=="__main__": unittest.main()

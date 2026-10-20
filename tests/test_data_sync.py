@@ -159,4 +159,34 @@ class TestCurrentRevisionIntegrity(unittest.TestCase):
         r=gate.validate(old,copy.deepcopy(old),current=c)
         self.assertNotIn("source_revision_conflict",r["problems_by_type"])
 
+class TestBuilderSourceRevision(unittest.TestCase):
+    def rows(self, rule="2026-10-20-r29", display="2026-10-20-r29", log="2026-10-20-r29"):
+        rows=fixture()
+        rows["M_Rules"]=[
+            ["Data revision", display],
+            ["rule_id", "value"],
+            ["DATA_REVISION", rule],
+        ]
+        rows["H_ChangeLog"]=[
+            ["log_id", "date", "type", "target", "change", "reason"],
+            ["LOG-105", "2026-10-20", "revision", "CURRENT", log + "へ更新", "metadata sync"],
+        ]
+        return rows
+
+    def test_exact_revision_contract_passes(self):
+        rev=build_data.verify_versioned_source_revision(
+            self.rows(), Path("/private/pokemon_sleep_decision_system_CURRENT_r29.xlsx"))
+        self.assertEqual(rev, "2026-10-20-r29")
+
+    def test_wrong_rule_revision_blocks(self):
+        with self.assertRaisesRegex(ValueError,"CURRENT revision mismatch"):
+            build_data.verify_versioned_source_revision(
+                self.rows(rule="2026-10-20-r26"), Path("/private/pokemon_sleep_decision_system_CURRENT_r29.xlsx"))
+
+    def test_stale_display_or_log_blocks(self):
+        for kwargs in ({"display":"2026-10-20-r28"},{"log":"2026-10-20-r28"}):
+            with self.subTest(kwargs=kwargs), self.assertRaisesRegex(ValueError,"CURRENT revision mismatch"):
+                build_data.verify_versioned_source_revision(
+                    self.rows(**kwargs), Path("/private/pokemon_sleep_decision_system_CURRENT_r29.xlsx"))
+
 if __name__=="__main__": unittest.main()

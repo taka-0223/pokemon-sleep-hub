@@ -116,3 +116,24 @@
 
 **Current next step**: reconcile the 14 substantive role-candidate master differences and the dated priority review with the original decision evidence; make a *separate* explicit main merge/production publication decision after full approved manifest validation. The app's present v0.19 data gate and UI remain intact.
 
+## 2026-10-21 r32｜根拠あるCoverage更新と14役割の候補不整合
+
+### 非公開CURRENTの限定修正
+- ライブラリSSOT `pokemon_sleep_decision_system_CURRENT_r32.xlsx`（`2026-10-21-r32`）。r31から**論理セル15件のみ**変更（M_Rulesのrevision2、Coverage7、LOG-108の6）。r31原本はそのまま保持。既存41有効個体・PR測定219件・Species Tier・個体優先順位・33 RoleSlot・その他45 Coverage・資源18キーは変更なし。
+- `ING-013` は「育成待ち」→「充足」。出典：`LOG-070` ドオーLv30のAAカカオ×5解禁、`ROLE-008` は2026-10-09に充足・厳選停止。旧basisを更新。
+- `SKL-002` は「育成待ち」→「充足」。出典：`LOG-058` モココ→デンリュウ進化、`ROLE-006` は2026-10-06に充足・厳選停止。旧holder「モココ」を「デンリュウ」に更新。
+- r31→r32同じ生成パイプラインの比較で、公開派生データは **CoverageMatrix上記2件のstatusのみ**が変化。レビューした２経路だけを許可する差分マニフェストによるローカルの fail-closed ゲートは**PASS**、全体公開に対する自動承認ではない。
+- private workbook SHA-256: `56ac111ddff45c3402282152866d1725be689f250489e2a28561f07fe001898b`。r32公開候補は private 監査フォルダにのみ保管し、`data.js`をmainへ反映していない。
+
+### 未解決RoleSlot候補14件の分類（評価変更はしない）
+- 公開r23の候補に存在するのに最新`M_SpeciesAssessment`の対応`role_key/species_key`に**未収録の候補が合計26件**。同じ候補種は両方にあるがTierが異なるものは**9件**。
+- 意味的差分がある14 RoleSlots：ROLE-002/003/004/005/006/008/010/011/014/015/016/017/018/033。うち **ROLE-002/015/018/033はmasterの該当role_key評価が0件**なので最新生成では候補一覧が空になる（生成器の単純なバグではなくマスター収録の不足）。
+- 他19 RoleSlotsは候補種・Tier・preferredの組が同一で、並び・表示ラベル等の差のみ。ユーザー向けの表示品質はApp開発で要確認。
+- 新しい `role_candidate_loss` ゲートにより、旧公開版に候補が存在するRoleSlotを候補ゼロへ変更する操作は、**一般的なallowed_changesマニフェストを付けてもBLOCKED**。元の候補を正本へ自動輸入したわけではない。
+
+### 個体優先順位13件の履歴分類
+- **5件**は公開r17→r18（2026-10-06）の変動に由来、**8件**はr18→r21（2026-10-09）の再配分に由来。CURRENT r23→r32の対応する`D_Decisions.priority_rank`には一切変更がない。
+- 旧公開優先順位の更新日時と変更理由は、CURRENTの現在の意思決定年月日と必ずしも一致しない。「どちらかが正しい」と機械的に決定せず、評価と資源別優先順位（R-012）の概念を分離したままレビューする。
+- 今回の `P_RoleCoverage` 同期は既存確定事実による訂正であり、Species Tier16件・priority13件・RoleSlot候補Tier9件の採否には何ら影響しない。
+
+**公開は引き続き保留：** Tierとpriority、および不足候補14役割の正式な判断は未承認。最新SSOT・RoleSlot・既存PR・アプリData Sufficiency Gateは保持。mainのマージとGitHub Pages公開はユーザー承認が必要。

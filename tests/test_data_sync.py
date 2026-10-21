@@ -317,6 +317,46 @@ class TestSpeciesFamilyLabels(unittest.TestCase):
         self.assertEqual(generated["roles"][0]["upgradeTargetLabel"],"ラルトス→サーナイト")
 
 
+class TestAssessmentKeyIntegrity(unittest.TestCase):
+    """Fixed species facts alone must not become an individual Tier."""
+
+    def target_fixture(self, role_key, assessment_key=None):
+        rows=copy.deepcopy(fixture())
+        rows["P_Individuals"][0].append("target_species_key")
+        for row in rows["P_Individuals"][1:]:
+            row.append("blastoise" if row[0]=="IND-0001" else None)
+        rows["M_Species"]=[
+            ["species_key","display_name","family_key","stage","final_form_key"],
+            ["blastoise","カメックス","squirtle_family",3,"blastoise"],
+        ]
+        rows["P_RoleSlots"]=[
+            ["role_slot_id","role_key","role_type","upgrade_target_species"],
+            ["ROLE-001",role_key,"食材","blastoise"],
+        ]
+        rows["M_SpeciesAssessment"]=[
+            ["species_key","role_key","grade","status"],
+        ]
+        if assessment_key is not None:
+            rows["M_SpeciesAssessment"].append(
+                ["blastoise",assessment_key,"S","active"])
+        return rows
+
+    def test_fact_only_master_does_not_invent_tier_or_candidate(self):
+        generated,_=snapshot(self.target_fixture("milk_cacao_mixed"))
+        self.assertIsNone(generated["individuals"][0]["speciesGrade"])
+        self.assertEqual(generated["roles"][0]["targetCandidates"],[])
+        self.assertEqual(generated["individuals"][0]["targetSpeciesName"],"カメックス")
+
+    def test_role_key_alignment_reuses_existing_assessment_tier(self):
+        misaligned,_=snapshot(self.target_fixture("milk_cacao_mixed","milk_cacao"))
+        aligned,_=snapshot(self.target_fixture("milk_cacao_mixed","milk_cacao_mixed"))
+        self.assertIsNone(misaligned["individuals"][0]["speciesGrade"])
+        self.assertEqual(misaligned["roles"][0]["targetCandidates"],[])
+        self.assertEqual(aligned["individuals"][0]["speciesGrade"],"S")
+        self.assertEqual(aligned["roles"][0]["targetCandidates"][0]["grade"],"S")
+        self.assertEqual(aligned["roles"][0]["targetCandidates"][0]["speciesKey"],"blastoise")
+
+
 class TestCurrentRevisionIntegrity(unittest.TestCase):
     def test_filename_revision_disagrees_with_current_rule(self):
         rows=fixture()  # M_Rules claims r26

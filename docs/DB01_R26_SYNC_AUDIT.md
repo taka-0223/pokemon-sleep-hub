@@ -137,3 +137,9 @@
 - 今回の `P_RoleCoverage` 同期は既存確定事実による訂正であり、Species Tier16件・priority13件・RoleSlot候補Tier9件の採否には何ら影響しない。
 
 **公開は引き続き保留：** Tierとpriority、および不足候補14役割の正式な判断は未承認。最新SSOT・RoleSlot・既存PR・アプリData Sufficiency Gateは保持。mainのマージとGitHub Pages公開はユーザー承認が必要。
+
+### M_Species の不足も確認（2026-10-21）
+
+- `M_SpeciesAssessment`にない**26候補レコード**を`M_Species`とも照合したところ、**18件は種族基本マスターにもキーがない**（18ユニーク種族キー）。残り8件は基本種族キーがあるものの役割別評価が未登録。
+- これは役割別候補の空配列を埋めるだけでは解消しない。データ復旧は段階を分け、まず「種族の固定事実が出典で確認できるか」、次に「役割別Tierとして承認されているか」を判断する。公開r23の候補リストを使って基本事実・評価を自動生成することは禁止。
+- 対象18キーと26件の個別差分は、非公開 `DB01_r32_release_review.xlsx` 内の「種族Master欠落18件」「候補14役割」に記録。レビュー状態は未承認で、r32 CURRENTの`M_Species`・`M_SpeciesAssessment`には書き込んでいない。

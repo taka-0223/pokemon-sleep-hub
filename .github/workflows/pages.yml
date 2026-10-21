@@ -37,3 +37,25 @@ jobs:
           python3 scripts/build_srp.py /tmp/srp.js
           node --check /tmp/srp.js
           grep -q '"status":"ready"' /tmp/srp.js
+
+      - name: Attach staged PWA for review
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pwa-current-facts-review
+          retention-days: 7
+          path: |
+            index.html
+            app.js
+            style.css
+            data-gate.js
+            data-gate-ui.js
+            data-gate.css
+            data.js
+            current-facts.js
+            current-facts-merge.js
+            srp.js
+            updates.js
+            manifest.webmanifest
+            service-worker.js
+            icons/

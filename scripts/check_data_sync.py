@@ -106,6 +106,16 @@ def validate(baseline, candidate, allow=None, current=None, base_path=None, cand
 
     if set(b_roles)!=set(c_roles):
         block("roleslot_loss",f"RoleSlot IDs changed: missing={sorted(set(b_roles)-set(c_roles))}, added={sorted(set(c_roles)-set(b_roles))}")
+    # A published non-empty candidate roster must not silently become empty,
+    # even if someone mistakenly lists that field in an approval manifest.
+    # This is independent of the exact-value change gate below.
+    for rid in sorted(set(b_roles)&set(c_roles)):
+        older=b_roles[rid].get("targetCandidates") or []
+        newer=c_roles[rid].get("targetCandidates") or []
+        if older and not newer:
+            block("role_candidate_loss",
+                  f"{rid} loses all {len(older)} published role candidates",
+                  f"roles.{rid}.targetCandidates")
     if set(b_cover)!=set(c_cover):
         block("coverage_loss",f"Coverage IDs changed: missing={sorted(set(b_cover)-set(c_cover))}, added={sorted(set(c_cover)-set(b_cover))}")
 

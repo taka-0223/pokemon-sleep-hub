@@ -7,9 +7,15 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f6ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2530" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="./manifest.webmanifest?v=0.24">
-<link rel="stylesheet" href="./style.css?v=0.24">
-<link rel="stylesheet" href="./data-gate.css?v=0.24">
+<link rel="manifest" href="./manifest.webmanifest?v=0.25">
+<link rel="stylesheet" href="./style.css?v=0.25">
+<link rel="stylesheet" href="./data-gate.css?v=0.25">
+<style>
+.facts-status{margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px;line-height:1.7}
+.facts-status[data-status="current"]{color:var(--text)}
+.facts-status[data-status="fallback"]{border-style:dashed}
+@media(max-width:600px){.facts-status{font-size:11px}}
+</style>
 </head>
 <body>
 <header class="topbar">
@@ -28,6 +34,7 @@
 </header>
 
 <main id="swipeArea" class="shell">
+  <div id="factsStatus" class="facts-status" role="status" aria-live="polite">手持ち・PRの更新状態を確認しています…</div>
   <section id="home" class="view active">
     <div class="page-title"><div><span class="eyebrow">ACCOUNT OVERVIEW</span><h2>現状</h2></div></div>
     <p class="lede home-lede">アカウントの要注意点と、次に動くべきものだけをまとめています。</p>
@@ -196,18 +203,20 @@
   <section id="dataGateResult" class="gate-result" aria-live="polite"></section>
   <details class="gate-source"><summary>参照元・入力の扱い</summary><p id="dataGateSource"></p></details>
 </dialog>
-<script src="./data.js?v=0.24"></script>
-<script src="./updates.js?v=0.24"></script>
-<script src="./srp.js?v=0.24"></script>
-<script src="./data-gate.js?v=0.24"></script>
-<script src="./app.js?v=0.24"></script>
-<script src="./data-gate-ui.js?v=0.24"></script>
+<script src="./data.js?v=0.25"></script>
+<script src="./current-facts.js?v=0.25"></script>
+<script src="./current-facts-merge.js?v=0.25"></script>
+<script src="./updates.js?v=0.25"></script>
+<script src="./srp.js?v=0.25"></script>
+<script src="./data-gate.js?v=0.25"></script>
+<script src="./app.js?v=0.25"></script>
+<script src="./data-gate-ui.js?v=0.25"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;
-      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.24", { updateViaCache: "none" });
+      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.25", { updateViaCache: "none" });
       await reg.update();
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {

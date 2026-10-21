@@ -269,6 +269,54 @@ class TestRoleCandidateAndCoverageReconciliation(unittest.TestCase):
         self.assertIn("unapproved_change",result["problems_by_type"])
 
 
+class TestSpeciesFamilyLabels(unittest.TestCase):
+    """A sibling evolution is not an ancestor if no lower-stage base exists."""
+
+    def test_eevee_final_form_siblings_never_imply_evolution_into_one_another(self):
+        rows=copy.deepcopy(fixture())
+        rows["M_Species"]=[
+            ["species_key","display_name","family_key","stage","final_form_key"],
+            ["jolteon","サンダース","eevee_family",2,"jolteon"],
+            ["espeon","エーフィ","eevee_family",2,"espeon"],
+            ["glaceon","グレイシア","eevee_family",2,"glaceon"],
+        ]
+        rows["P_RoleSlots"]=[
+            ["role_slot_id","role_key","role_type","upgrade_target_species"],
+            ["ROLE-001","direct_energy","スキル","espeon"],
+        ]
+        rows["M_SpeciesAssessment"]=[
+            ["species_key","role_key","grade","status"],
+            ["espeon","direct_energy","S","active"],
+            ["jolteon","direct_energy","A","active"],
+            ["glaceon","direct_energy","A+","active"],
+        ]
+        generated,_=snapshot(rows)
+        role=generated["roles"][0]
+        self.assertEqual(role["upgradeTargetLabel"],"エーフィ")
+        for candidate in role["targetCandidates"]:
+            self.assertEqual(candidate["displayLabel"],candidate["name"])
+            self.assertNotIn("→",candidate["displayLabel"])
+
+    def test_branch_with_known_base_retains_correct_branch_label(self):
+        rows=copy.deepcopy(fixture())
+        rows["M_Species"]=[
+            ["species_key","display_name","family_key","stage","final_form_key"],
+            ["ralts","ラルトス","ralts_family",1,"gardevoir"],
+            ["gardevoir","サーナイト","ralts_family",3,"gardevoir"],
+            ["gallade","エルレイド","ralts_family",3,"gallade"],
+        ]
+        rows["P_RoleSlots"]=[
+            ["role_slot_id","role_key","role_type","upgrade_target_species"],
+            ["ROLE-001","healer","スキル","gardevoir"],
+        ]
+        rows["M_SpeciesAssessment"]=[
+            ["species_key","role_key","grade","status"],
+            ["gardevoir","healer","S","active"],
+        ]
+        generated,_=snapshot(rows)
+        self.assertEqual(generated["roles"][0]["upgradeTargetLabel"],"ラルトス→サーナイト")
+
+
 class TestCurrentRevisionIntegrity(unittest.TestCase):
     def test_filename_revision_disagrees_with_current_rule(self):
         rows=fixture()  # M_Rules claims r26

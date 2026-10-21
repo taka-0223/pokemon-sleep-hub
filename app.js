@@ -66,7 +66,18 @@ const statusKind=s=>["充足","特殊充足"].includes(s)?"good":["育成待ち"
 const statusClass=s=>"state-"+statusKind(s);
 const roleClass=t=>t==="食材"?"role-food":t==="きのみ"?"role-berry":t==="スキル"?"role-skill":"role-other";
 const normalizeName=s=>String(s||"").replaceAll("（","(").replaceAll("）",")");
-$("#revision").textContent="data "+(D.meta.revision||"—")+" · app v"+(D.meta.appVersion||"—");
+const FACTS_STATUS=window.APP_FACTS_STATUS||{applied:false};
+$("#revision").textContent=FACTS_STATUS.applied
+  ?"手持ち "+(D.meta.currentFactsRevision||"—")+" · 評価 "+(D.meta.legacyDecisionRevision||"—")
+  :"data "+(D.meta.revision||"—")+" · app v"+(D.meta.appVersion||"—");
+const provenanceBar=$("#factsStatus");
+if(provenanceBar){
+  const count=D.individuals.filter(p=>p.primaryPR!=null).length;
+  provenanceBar.textContent=FACTS_STATUS.applied
+    ?"手持ち・PR・資源：CURRENT "+FACTS_STATUS.revision+"（"+D.individuals.length+"体／PR "+count+"体）。種族Tier・厳選候補・育成優先順位：旧公開 "+FACTS_STATUS.decisionRevision+" の参考情報（現在の正式判断ではありません）。"
+    :"最新の手持ちデータは未反映です。現在は旧公開r23を表示しています。設定から「更新を適用」または再読み込みをお試しください。";
+  provenanceBar.dataset.status=FACTS_STATUS.applied?"current":"fallback";
+}
 
 function srpFor(p){
   const s=SRP.bySpecies&&SRP.bySpecies[normalizeName(p.targetSpeciesName)];
@@ -349,7 +360,7 @@ function renderHome(){
   ];
   $("#homeSummary").innerHTML=
     '<div class="home-summary-grid">'+summary.map(x=>'<div><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>'+
-    '<div class="home-data-line"><span>data '+esc(D.meta.revision||"—")+'</span><span>app v'+esc(D.meta.appVersion||"—")+'</span></div>';
+    '<div class="home-data-line"><span>手持ち '+esc(D.meta.currentFactsRevision||D.meta.revision||"—")+'</span><span>評価 '+esc(D.meta.legacyDecisionRevision||D.meta.revision||"—")+'（参考）</span></div>';
 
   bindHomeActions();
   bindRows();
@@ -449,6 +460,8 @@ function renderUpdateHistory(){
 function renderAppInfo(){
   const info=[
     ["アプリ","v"+(D.meta.appVersion||"—")],
+    ["手持ち・PR・資源",D.meta.currentFactsRevision||"旧公開 "+(D.meta.revision||"—")],
+    ["種族Tier・厳選・育成方針","旧公開 "+(D.meta.legacyDecisionRevision||D.meta.revision||"—")+"（参考）"],
     ["データ",D.meta.revision||"—"],
     ["データ更新日",D.meta.generatedAt||"—"],
     ["手持ち",D.individuals.length+"体"],
@@ -460,7 +473,7 @@ function renderAppInfo(){
 }
 function renderSettings(){
   $("#settingsVersion").textContent="app v"+(D.meta.appVersion||"—");
-  $("#settingsDataRevision").textContent="data "+(D.meta.revision||"—");
+  $("#settingsDataRevision").textContent="手持ち "+(D.meta.currentFactsRevision||D.meta.revision||"—")+" ／ 評価 "+(D.meta.legacyDecisionRevision||D.meta.revision||"—")+"（参考）";
   $("#themeMode").value=appSettings.theme;
   $("#showCompletedRefine").checked=!!appSettings.showCompletedRefine;
   $("#updateStatus").textContent="更新状況を確認できます。";
@@ -476,6 +489,10 @@ function parseRemoteData(text){
   const src=String(text||"").trim().replace(/^window\.APP_DATA=/,"").replace(/;$/,"");
   return JSON.parse(src);
 }
+function parseRemoteFacts(text){
+  const src=String(text||"").trim().replace(/^window\.APP_CURRENT_FACTS=/,"").replace(/;$/,"");
+  return JSON.parse(src);
+}
 async function checkForUpdates(){
   const status=$("#updateStatus"),apply=$("#applyUpdate"),check=$("#checkUpdate");
   status.textContent="更新を確認しています…";
@@ -484,19 +501,25 @@ async function checkForUpdates(){
   try{
     const reg=await navigator.serviceWorker?.getRegistration?.();
     if(reg)await reg.update();
-    const res=await fetch("./data.js?update-check="+Date.now(),{cache:"no-store"});
-    if(!res.ok)throw new Error("HTTP "+res.status);
+    const [res,factsRes]=await Promise.all([
+      fetch("./data.js?update-check="+Date.now(),{cache:"no-store"}),
+      fetch("./current-facts.js?update-check="+Date.now(),{cache:"no-store"})
+    ]);
+    if(!res.ok||!factsRes.ok)throw new Error("HTTP "+res.status+"/"+factsRes.status);
     const remote=parseRemoteData(await res.text());
+    const remoteFacts=parseRemoteFacts(await factsRes.text());
     const appChanged=String(remote.meta?.appVersion||"")!==String(D.meta.appVersion||"");
     const dataChanged=String(remote.meta?.revision||"")!==String(D.meta.revision||"");
-    if(appChanged||dataChanged){
+    const factsChanged=String(remoteFacts.meta?.sourceRevision||"")!==String(D.meta.currentFactsRevision||"");
+    if(appChanged||dataChanged||factsChanged){
       const parts=[];
       if(appChanged)parts.push("app v"+remote.meta.appVersion);
-      if(dataChanged)parts.push("data "+remote.meta.revision);
+      if(dataChanged)parts.push("旧評価データ "+remote.meta.revision);
+      if(factsChanged)parts.push("手持ち "+(remoteFacts.meta?.sourceRevision||"未確認"));
       status.textContent="更新があります： "+parts.join(" / ");
       apply.hidden=false;
     }else{
-      status.textContent="最新です。 app v"+(D.meta.appVersion||"—")+" / data "+(D.meta.revision||"—");
+      status.textContent="最新です。 手持ち "+(D.meta.currentFactsRevision||"未適用")+" / 評価 "+(D.meta.revision||"—")+"（参考）";
     }
   }catch(e){
     status.textContent="更新確認に失敗しました。通信状態を確認してください。";

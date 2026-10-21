@@ -157,6 +157,10 @@ def main():
         if len(members)<=1: return name
         base=min(members,key=stage_num)
         base_name=species_name.get(base.get("species_key")) or first(base,"display_name","species_name","name")
+        # A family can contain distinct final forms without its first-stage
+        # base in M_Species (e.g. Eevee evolutions). Siblings at equal stage
+        # must never be displayed as one evolving into another.
+        if stage_num(base)>=stage_num(row): return name
         if not base_name or base_name==name: return name
         finals={first(m,"final_form_key") for m in members if first(m,"final_form_key")}
         if len(finals)>1:

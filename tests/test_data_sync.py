@@ -211,6 +211,64 @@ class TestHistoricalMeasurementRecovery(unittest.TestCase):
         self.assertIn("unapproved_change",result["problems_by_type"])
 
 
+class TestRoleCandidateAndCoverageReconciliation(unittest.TestCase):
+    """Technical sync approval must not erase all previously published candidates."""
+
+    def test_cannot_whitelist_a_nonempty_role_as_empty(self):
+        before=baseline()
+        before["roles"][0]["targetCandidates"]=[
+            {"speciesKey":"raichu","grade":"S","preferred":True}
+        ]
+        after=copy.deepcopy(before)
+        after["roles"][0]["targetCandidates"]=[]
+        field="roles.ROLE-001.targetCandidates"
+        approval={
+            "baseline_sha256":"synthetic",
+            "current_sha256":"synthetic",
+            "expected_revision":after["meta"]["revision"],
+            "allowed_new_ids":[],
+            "allowed_changes":[{
+                "path":field,
+                "before":before["roles"][0]["targetCandidates"],
+                "after":[],
+                "source":"reviewed-field-manifest-is-not-authorization-for-total-loss",
+            }],
+        }
+        result=gate.validate(before,after,approval)
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertIn("role_candidate_loss",result["problems_by_type"])
+
+    def test_coverage_status_restoration_can_be_exactly_scoped(self):
+        before=baseline()
+        before["coverageMatrix"][0]["status"]="育成待ち"
+        after=copy.deepcopy(before)
+        after["coverageMatrix"][0]["status"]="充足"
+        approval={
+            "baseline_sha256":"synthetic",
+            "current_sha256":"synthetic",
+            "expected_revision":after["meta"]["revision"],
+            "allowed_new_ids":[],
+            "allowed_changes":[{
+                "path":"coverageMatrix.ING-1.status",
+                "before":"育成待ち",
+                "after":"充足",
+                "source":"fixed-level-progress-and-existing-RoleSlot-record",
+            }],
+        }
+        result=gate.validate(before,after,approval)
+        self.assertEqual(result["status"],"PASS",result["problems"])
+        self.assertEqual(before["coverageMatrix"][0]["status"],"育成待ち")
+
+    def test_coverage_status_change_without_review_is_blocked(self):
+        before=baseline()
+        before["coverageMatrix"][0]["status"]="育成待ち"
+        after=copy.deepcopy(before)
+        after["coverageMatrix"][0]["status"]="充足"
+        result=gate.validate(before,after)
+        self.assertEqual(result["status"],"BLOCKED")
+        self.assertIn("unapproved_change",result["problems_by_type"])
+
+
 class TestCurrentRevisionIntegrity(unittest.TestCase):
     def test_filename_revision_disagrees_with_current_rule(self):
         rows=fixture()  # M_Rules claims r26

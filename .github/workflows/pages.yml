@@ -22,11 +22,14 @@ jobs:
           python3 -m py_compile scripts/build_srp.py scripts/build_data.py
           node --check app.js
           node --check data.js
+          node --check current-facts.js
+          node --check current-facts-merge.js
           node --check srp.js
           node --check updates.js
           node --check data-gate.js
           node --check data-gate-ui.js
           node --test tests/data-gate.test.cjs
+          node --test tests/current-facts.test.cjs
           grep -q '"status":"ready"' srp.js
 
       - name: Verify SRP generator

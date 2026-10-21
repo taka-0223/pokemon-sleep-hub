@@ -117,3 +117,31 @@ test('sidecar generation is deterministic and excludes original workbook',()=>{
   assert.equal(js.includes('M_SpeciesAssessment'),false);
   assert.equal(js.includes('pokemon_sleep_decision_system_CURRENT_r33.xlsx'),false);
 });
+
+test('real published r23 snapshot retains 36 historical PR and all approved decisions',()=>{
+  const publishedSandbox={window:{}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../data.js'),'utf8'),publishedSandbox);
+  const original=JSON.parse(JSON.stringify(publishedSandbox.window.APP_DATA));
+  const updated=applyFacts(original,facts);
+  assert.equal(original.meta.revision,'2026-10-15-r23');
+  assert.equal(original.individuals.length,38);
+  assert.equal(updated.individuals.length,41);
+  assert.equal(updated.individuals.filter(x=>x.primaryPR!=null).length,36);
+  assert.equal(updated.coverageMatrix.length,47);
+  assert.equal(Object.keys(updated.resources).length,18);
+  assert.deepEqual(updated.roles,original.roles);
+  const indexed=new Map(updated.individuals.map(x=>[x.id,x]));
+  for(const before of original.individuals){
+    const after=indexed.get(before.id);
+    assert.ok(after,'Existing individual disappeared: '+before.id);
+    assert.equal(after.primaryPR,before.primaryPR,'Public measured PR changed for '+before.id);
+    assert.equal(after.primaryEvalLv,before.primaryEvalLv,'Measurement level changed');
+    for(const field of DECISIONS)assert.deepEqual(after[field],before[field],'Legacy decision mutated: '+before.id+'.'+field);
+  }
+  const added=updated.individuals.filter(x=>!original.individuals.some(y=>y.id===x.id));
+  assert.deepEqual(added.map(x=>x.id),['IND-0040','IND-0041','IND-0042']);
+  for(const x of added){
+    assert.equal(x.primaryPR,null);
+    for(const field of DECISIONS)assert.equal(x[field],null,'New individual had unapproved '+field);
+  }
+});

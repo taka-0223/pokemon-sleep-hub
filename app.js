@@ -423,6 +423,7 @@ function detail(p){
     '<div class="detail-role">'+esc(p.roleName)+'</div>'+
     '<div class="detail-identity"><div><h2>'+esc(displayName(p))+'</h2><span class="detail-level">Lv.'+esc(p.level)+'</span></div>'+qualityBadge(p.quality)+'</div>'+
     '<div class="detail-tags"><span>種族 '+tierText(p.speciesGrade)+'</span><span>'+esc(p.foodPattern)+'</span><span class="'+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
+    '<p class="detail-provenance">'+(p.decisionSnapshot?'品質・種族Tier・育成方針は旧公開 '+esc(p.decisionSnapshot)+' の参考情報です。':'品質・種族Tier・育成方針はまだ未設定です。')+'</p>'+
   '</section>'+
   '<div class="main-skill-card"><span class="main-skill-icon">✦</span><div><small>メインスキル</small><strong>'+esc(p.mainSkill||"未登録")+'</strong></div><span class="main-skill-lv">Lv.'+esc(p.mainSkillLv||"—")+'</span></div>'+
   '<div class="score-grid">'+

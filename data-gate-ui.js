@@ -73,7 +73,8 @@
     const modelBlock=type==="cooking"&&state.intent==="commit"
       ?'<p class="gate-blocker">料理エンジンはまだAppに接続されていません。鍋や食材を入力するだけでは確定エナジーを計算できません。</p>':"";
     $("dataGateFields").innerHTML=target+keys.map(fieldHtml).join("")+modelBlock;
-    const snapshot=D.meta?.revision||"—",sourceDate=D.meta?.generatedAt||"日付不明";
+    const snapshot=D.meta?.currentFactsRevision||D.meta?.revision||"—";
+    const sourceDate=(D.meta?.currentFactsRevision||"").slice(0,10)||D.meta?.generatedAt||"日付不明";
     $("dataGateContext").textContent=person
       ?"対象："+person.name+" / 公開データLv."+person.level+"（掲載 "+sourceDate+"、現在値は未確認）"
       :"公開データ "+snapshot+" / データ更新日 "+sourceDate+"（現況とは限りません）";
@@ -136,7 +137,7 @@
     $("dataGateResult").className="gate-result is-"+r.status.toLowerCase();
     $("dataGateResult").innerHTML=html;
     $("dataGateSource").textContent="判断方針 "+r.source_revision+"（C_DataPolicy / C_DecisionGate） / 公開個体データ "+
-      (D.meta?.revision||"未確認")+"。入力内容はこの画面限りで、CURRENT・data.js・端末内に保存されません。";
+      ((D.meta?.currentFactsRevision||D.meta?.revision||"未確認")+"（手持ち情報） / 評価・役割の参考版 "+(D.meta?.legacyDecisionRevision||D.meta?.revision||"未確認"))+"。入力内容はこの画面限りで、CURRENT・data.js・端末内に保存されません。";
   }
   function onDecisionChange(){
     state.type=$("dataGateType").value;

@@ -86,18 +86,53 @@ def first(d,*keys):
         if k in d and d[k] not in (None,""): return d[k]
     return None
 
+def verify_versioned_source_revision(wb, xlsx):
+    """Refuse an inconsistent immutable CURRENT_rNN workbook before output.
+
+    The private workbook remains the SSOT; no published values are used as a
+    fallback.  Generic unversioned filenames retain the legacy test/CLI path.
+    """
+    suffix = re.search(r"_r(\d+)\.xlsx$", Path(xlsx).name, re.I)
+    if not suffix:
+        return None
+    expected_suffix = "r" + suffix.group(1)
+    rules = [r for r in dict_rows(wb.get("M_Rules", []), "rule_id")
+             if r.get("rule_id") == "DATA_REVISION"]
+    if len(rules) != 1:
+        raise ValueError("CURRENT requires exactly one DATA_REVISION row")
+    revision = str(first(rules[0], "value", "setting_value") or "")
+    displayed = []
+    for row in wb.get("M_Rules", [])[:5]:
+        for i, val in enumerate(row[:-1]):
+            if val == "Data revision":
+                displayed.append(row[i + 1])
+    logs = dict_rows(wb.get("H_ChangeLog", []), "log_id")
+    latest_log = next((m.group(0) for log in reversed(logs)
+                       if log.get("type") == "revision"
+                       if (m := re.search(r"\d{4}-\d{2}-\d{2}-r\d+", str(log.get("change") or "")))), None)
+    if (not revision.endswith("-" + expected_suffix)
+            or displayed != [revision] or latest_log != revision):
+        raise ValueError(
+            "CURRENT revision mismatch: filename=" + expected_suffix
+            + ", DATA_REVISION=" + revision
+            + ", displayed=" + repr(displayed)
+            + ", change_log=" + str(latest_log)
+        )
+    return revision
+
 def main():
     if len(sys.argv)<2:
         raise SystemExit("usage: build_data.py CURRENT.xlsx [data.js]")
     xlsx=Path(sys.argv[1]); target=Path(sys.argv[2] if len(sys.argv)>2 else "data.js")
     wb=read_xlsx(xlsx)
+    verify_versioned_source_revision(wb, xlsx)
     inds=dict_rows(wb.get("P_Individuals",[]),"individual_id")
     decisions=dict_rows(wb.get("D_Decisions",[]),"individual_id")
     roles=dict_rows(wb.get("P_RoleSlots",[]),"role_slot_id")
     assessments=dict_rows(wb.get("M_SpeciesAssessment",[]),"species_key")
     measurements=dict_rows(wb.get("L_Measurements",[]),"individual_id")
     species=dict_rows(wb.get("M_Species",[]),"species_key")
-    account=dict_rows(wb.get("P_Account",[]),"account_key")
+    account=dict_rows(wb.get("P_Account",[]),"key")
     rules=dict_rows(wb.get("M_Rules",[]),"rule_id")
     role_coverage=dict_rows(wb.get("P_RoleCoverage",[]),"coverage_id")
 
@@ -122,6 +157,10 @@ def main():
         if len(members)<=1: return name
         base=min(members,key=stage_num)
         base_name=species_name.get(base.get("species_key")) or first(base,"display_name","species_name","name")
+        # A family can contain distinct final forms without its first-stage
+        # base in M_Species (e.g. Eevee evolutions). Siblings at equal stage
+        # must never be displayed as one evolving into another.
+        if stage_num(base)>=stage_num(row): return name
         if not base_name or base_name==name: return name
         finals={first(m,"final_form_key") for m in members if first(m,"final_form_key")}
         if len(finals)>1:
@@ -140,7 +179,13 @@ def main():
         xs=sorted(xs,key=lambda a:(0 if a.get("species_key")==preferred else 1,grade_order.get(a.get("grade"),9),species_name.get(a.get("species_key")) or str(a.get("species_key") or "")))
         return [{"speciesKey":a.get("species_key"),"name":species_name.get(a.get("species_key")) or a.get("species_key"),"displayLabel":species_display_label(a.get("species_key")),"grade":a.get("grade"),"preferred":a.get("species_key")==preferred} for a in xs]
     meas={}
-    for m in measurements: meas.setdefault(m.get("individual_id"),[]).append(m)
+    for m in measurements:
+        # Scenario-only measurements are not formal individual performance.
+        # In particular, the silver-seed ON investment scenario must not be
+        # mixed with the existing OFF-labelled published measurement series.
+        if "investment scenario" in str(m.get("settings") or "").lower():
+            continue
+        meas.setdefault(m.get("individual_id"),[]).append(m)
 
     metric_for={"きのみ":"きのみPR","食材":"食材PR","スキル":"スキル発動PR"}
     app=[]
@@ -190,11 +235,31 @@ def main():
 
     def coverage(t):
         return [r for r in app_roles if r["type"]==t]
+    # P_Account is a historical ledger.  A later physical row is not
+    # necessarily a newer observation (archived unknown keys can be appended).
+    # Never publish inferred/approximate counts as confirmed numeric balances.
     resources={}
+    resource_dates={}
     for a in account:
-        key=first(a,"account_key","resource_key","key")
+        if a.get("category") not in ("resource", "status", "event"):
+            continue  # Never expose friendship/private planning fields.
+        key=first(a,"key")
         if not key: continue
-        resources[str(key)]={"value":first(a,"value","amount","count"),"text":first(a,"note","text","memo")}
+        key=str(key)
+        observed_at=str(first(a,"snapshot_date") or "")
+        if key in resource_dates and observed_at < resource_dates[key]:
+            continue  # Historical backfill must not overwrite newer evidence.
+        resource_dates[key]=observed_at
+        certainty=str(first(a,"certainty") or "unspecified")
+        numeric=first(a,"value_num")
+        if certainty not in ("confirmed", "unspecified"):
+            numeric=None  # "inferred", "approx", "unknown" aren't a confirmed count.
+        resources[key]={
+          "value":numeric,
+          "text":first(a,"value_text"),
+          "certainty":certainty,
+          "observedAt":observed_at or None,
+        }
 
     revision="CURRENT"
     for rr in rules:

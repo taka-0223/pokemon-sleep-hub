@@ -1,0 +1,57 @@
+name: DB01 ROLE018 matched simulator (research only)
+on:
+  push:
+    branches: ["fix/db01-r34-unrated-role-targets"]
+    paths:
+      - "scripts/db01_oil_condition_client.js"
+      - "scripts/db01_oil_condition_runner.mjs"
+      - "scripts/db01-oil.html"
+      - ".github/workflows/db01-oil-research.yml"
+permissions:
+  contents: read
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    steps:
+      - uses: actions/checkout@v5
+      - name: Freeze external simulator implementation
+        run: |
+          git clone --depth 1 https://github.com/reimer0204/pokesle-simulator.git simulator
+          cd simulator
+          git fetch --depth 1 origin 733701bbe6a625241c7701e76d830e0d8ff68c64
+          git checkout --detach 733701bbe6a625241c7701e76d830e0d8ff68c64
+          git rev-parse HEAD
+      - name: Install deterministic runner
+        working-directory: simulator
+        run: |
+          npm ci
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Install private-facts-free research harness
+        run: |
+          cp scripts/db01_oil_condition_client.js simulator/db01_oil_condition_client.js
+          cp scripts/db01_oil_condition_runner.mjs simulator/db01_oil_condition_runner.mjs
+          cp scripts/db01-oil.html simulator/db01-oil.html
+      - name: Start Vite simulator
+        working-directory: simulator
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/db01-vite.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:5173/db01-oil.html >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          tail -100 /tmp/db01-vite.log
+          exit 1
+      - name: Compare neutral species and historical Ditto
+        working-directory: simulator
+        run: node db01_oil_condition_runner.mjs
+      - name: Upload non-deploy research results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: db01-role018-like-for-like
+          retention-days: 7
+          path: |
+            db01-oil-comparable-results.json
+            /tmp/db01-vite.log

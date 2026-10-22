@@ -12,6 +12,18 @@ for(const level of [holder.level,30,60]){
  specs.push({id:`IND-0023-actual-${level}`,species:'メタモン',level,
    foodList:holder.foods,nature:holder.nature,subSkills,skillLv:holder.mainSkillLv,scenario:'real-individual-current-or-projected'});
 }
+
+const currentCompanions=['IND-0006','IND-0024','IND-0039','IND-0008','IND-0004'];
+for(const id of currentCompanions){
+ const person=facts.individuals.find(x=>x.id===id);
+ if(!person)throw new Error('Missing public helper '+id);
+ // The PWA display label may contain "Lv15③", which is not a simulator species name.
+ const pokemonName=String(person.name).replace(/\\s+Lv\\d+.*$/,'').trim();
+ specs.push({id:id+'-as-held',species:pokemonName,level:person.level,
+   foodList:person.foods,skillLv:person.mainSkillLv,nature:person.nature,
+   subSkills:person.subskills.map(x=>x.name),scenario:'other-current-team-holder'});
+}
+
 const configs=[
  ['メタモン','AAB',['ピュアなオイル','ピュアなオイル','ふといながねぎ']],
  ['ドクロッグ','AAA',['ピュアなオイル','ピュアなオイル','ピュアなオイル']],

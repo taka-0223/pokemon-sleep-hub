@@ -38,7 +38,9 @@ const configs=[
 for(const level of [30,60])for(const [species,pattern,foodList] of configs){
  specs.push({id:`${species}-${pattern}-${level}`,species,level,foodList,skillLv:1,nature:'がんばりや',subSkills:[null,null,null,null,null],scenario:'neutral-no-subskills'});
 }
-const browser=await chromium.launch({headless:true});
+const chromePath=['/usr/bin/google-chrome','/usr/bin/google-chrome-stable','/usr/bin/chromium'].find(x=>fs.existsSync(x));
+if(!chromePath)throw new Error('No system browser on runner');
+const browser=await chromium.launch({headless:true,executablePath:chromePath});
 try{
  const page=await browser.newPage();
  page.on('pageerror',e=>console.error('PAGEERROR',e.message));

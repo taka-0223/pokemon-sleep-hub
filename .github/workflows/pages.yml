@@ -30,6 +30,7 @@ jobs:
           node --check data-gate-ui.js
           node --test tests/data-gate.test.cjs
           node --test tests/current-facts.test.cjs
+          node --test tests/role-candidate-label.test.cjs
           grep -q '"status":"ready"' srp.js
 
       - name: Verify SRP generator

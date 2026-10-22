@@ -53,6 +53,8 @@ try{
   console.log(row.id,'direct-oil',row.direct['ピュアなオイル'],'combined-oil',row.combined['ピュアなオイル'],'skill/day',row.skillPerDay);
  }
  if(rows.length!==specs.length)throw new Error('Invalid case count');
+const expectedFoods=['ピュアなオイル','とくせんリンゴ','モーモーミルク','リラックスカカオ','あじわいキノコ','ワカクサコーン'];
+for(const row of rows)for(const key of expectedFoods)if(!Object.prototype.hasOwnProperty.call(row.direct,key))throw new Error('Missing ingredient output key '+key+' for '+row.id);
  const output={schema:'db01-oil-fixed-engine-v1',generatedAt:new Date().toISOString(),
     simulatorCommit:'733701bbe6a625241c7701e76d830e0d8ff68c64',
     currentFactsRevision:facts.meta.sourceRevision,

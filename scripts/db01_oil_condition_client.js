@@ -8,7 +8,7 @@ import { Food } from '/src/data/food_and_cooking.ts';
  * This is a direct numerical estimate of ingredient production under *one*
  * standardized config, not a formal Species Tier or role decision.
  */
-const FIELDS=['ピュアなオイル','ワカクサコーン','ほっこりポテト','あんみんトマト','とくせんエッグ','あまいミツ','ふといながねぎ','げきからハーブ','めざましコーヒー'];
+const FIELDS=Food.list.map(x=>x.name); // all 19 foods, no restricted set
 const blankSkills=[null,null,null,null,null];
 function cleanNum(x) {
  if(typeof x!=='number'||!Number.isFinite(x))throw new Error('Invalid simulator numeric result: '+x);

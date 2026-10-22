@@ -27,7 +27,7 @@ jobs:
         run: |
           npm ci
           npm install --no-save playwright@1.55.0
-          npx playwright install --with-deps chromium
+          command -v google-chrome || command -v chromium
       - name: Install private-facts-free research harness
         run: |
           cp scripts/db01_oil_condition_client.js simulator/db01_oil_condition_client.js

@@ -11,7 +11,7 @@ permissions:
   contents: read
 jobs:
   simulate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 28
     steps:
       - uses: actions/checkout@v5
@@ -54,4 +54,3 @@ jobs:
           retention-days: 7
           path: |
             db01-oil-comparable-results.json
-            /tmp/db01-vite.log

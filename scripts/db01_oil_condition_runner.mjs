@@ -18,7 +18,7 @@ for(const id of currentCompanions){
  const person=facts.individuals.find(x=>x.id===id);
  if(!person)throw new Error('Missing public helper '+id);
  // The PWA display label may contain "Lv15③", which is not a simulator species name.
- const pokemonName=String(person.name).replace(/\\s+Lv\\d+.*$/,'').trim();
+ const pokemonName=String(person.name).replace(/\s+Lv\d+.*$/,'').trim();
  specs.push({id:id+'-as-held',species:pokemonName,level:person.level,
    foodList:person.foods,skillLv:person.mainSkillLv,nature:person.nature,
    subSkills:person.subskills.map(x=>x.name),scenario:'other-current-team-holder'});

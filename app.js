@@ -156,14 +156,19 @@ function targetSpeciesLabel(r){
 function candidateLabel(c){
   return c.displayLabel||c.name||String(c.speciesKey||"—");
 }
+function candidateTierHtml(c){
+  return c && c.assessmentStatus==="unrated"
+    ? '<span class="tier-text q-other" title="役割別の正式な種族評価は未登録">Tier未評価</span>'
+    : tierText(c?.grade||"—");
+}
 function targetSpeciesHtml(r,done){
   const xs=Array.isArray(r.targetCandidates)?r.targetCandidates:[];
   if(!xs.length)return '<b>'+esc(targetSpeciesLabel(r))+'</b>';
   return '<div class="target-list">'+xs.map(c=>{
-    const name=esc(candidateLabel(c)),grade=c.grade||"—";
+    const name=esc(candidateLabel(c));
     return c.preferred
-      ? '<b>'+name+' '+tierText(grade)+'<small>'+(done?'採用':'本命')+'</small></b>'
-      : '<span>'+name+' '+tierText(grade)+'</span>';
+      ? '<b>'+name+' '+candidateTierHtml(c)+'<small>'+(done?'採用':'本命')+'</small></b>'
+      : '<span>'+name+' '+candidateTierHtml(c)+'</span>';
   }).join('<em>・</em>')+'</div>';
 }
 
@@ -198,7 +203,7 @@ function goalRoleHtml(r,done){
   }
   const c=preferredCandidate(r);
   if(c){
-    return '<div class="path-node path-goal"><small>更新目標</small><strong>'+esc(candidateLabel(c))+' '+tierText(c.grade||"—")+'</strong><span>'+(c.preferred?'本命候補':'候補')+'</span></div>';
+    return '<div class="path-node path-goal"><small>更新目標</small><strong>'+esc(candidateLabel(c))+' '+candidateTierHtml(c)+'</strong><span>'+(c.preferred?'本命候補':'候補')+'</span></div>';
   }
   if(r.upgradeTarget){
     return '<div class="path-node path-goal"><small>更新目標</small><strong>'+esc(targetSpeciesLabel(r))+'</strong><span>候補</span></div>';
@@ -211,7 +216,7 @@ function alternativeCandidatesHtml(r){
   const alts=xs.filter(c=>c!==primary);
   if(!alts.length)return "";
   return '<div class="refine-target refine-alts"><span>他候補</span><div class="target-list">'+alts.map(c=>
-    '<span>'+esc(candidateLabel(c))+' '+tierText(c.grade||"—")+'</span>'
+    '<span>'+esc(candidateLabel(c))+' '+candidateTierHtml(c)+'</span>'
   ).join('<em>・</em>')+'</div></div>';
 }
 function refiningRoles(){

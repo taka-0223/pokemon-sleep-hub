@@ -1,4 +1,4 @@
-const CACHE_NAME="pokemon-sleep-hub-v0.27-r35-decisions";
+const CACHE_NAME="pokemon-sleep-hub-v0.27.1-r35-cache-refresh";
 const CORE=["./","./index.html","./style.css","./app.js","./data-gate.js","./data-gate-ui.js","./data-gate.css","./data.js","./current-facts.js","./current-facts-merge.js","./current-decisions.js","./current-decisions-merge.js","./srp.js","./updates.js","./manifest.webmanifest","./icons/app-icon.svg"];
 const CORE_PATHS=new Set(CORE.map(p=>new URL(p,self.registration.scope).pathname));
 

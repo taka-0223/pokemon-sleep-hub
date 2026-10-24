@@ -86,6 +86,19 @@ def first(d,*keys):
         if k in d and d[k] not in (None,""): return d[k]
     return None
 
+def boolean_flag(value, field, *, allow_unknown=False):
+    """Normalize Excel boolean cells and imported text without guessing state."""
+    if value is None or value == "":
+        if allow_unknown: return None
+        raise ValueError("Missing boolean flag: " + field)
+    if isinstance(value, bool): return value
+    if isinstance(value, (int, float)) and value in (0, 1): return bool(value)
+    if isinstance(value, str):
+        normalized=value.strip().lower()
+        if normalized in ("true", "1", "active"): return True
+        if normalized in ("false", "0", "inactive", "archived"): return False
+    raise ValueError("Invalid boolean flag: " + field + "=" + repr(value))
+
 def verify_versioned_source_revision(wb, xlsx):
     """Refuse an inconsistent immutable CURRENT_rNN workbook before output.
 
@@ -189,9 +202,18 @@ def main():
 
     metric_for={"きのみ":"きのみPR","食材":"食材PR","スキル":"スキル発動PR"}
     app=[]
+    inactive_ids=[]
+    all_ids=set()
     for ind in inds:
-        if first(ind,"active","status") is False: continue
-        iid=ind.get("individual_id"); d=dec_by.get(iid,{})
+        iid=ind.get("individual_id")
+        if not iid or iid in all_ids:
+            raise ValueError("Missing or duplicate individual_id: " + repr(iid))
+        all_ids.add(iid)
+        active=boolean_flag(first(ind,"active","status"),iid+".active")
+        if not active:
+            inactive_ids.append(iid)
+            continue
+        d=dec_by.get(iid,{})
         r=role_by.get(d.get("role_slot_id"),{})
         rtype=r.get("role_type"); metric=metric_for.get(rtype)
         ms=[m for m in meas.get(iid,[]) if first(m,"unit") in (None,"percentile")]
@@ -208,6 +230,7 @@ def main():
           "targetSpeciesName":species_name.get(target_key) or target_key,
           "mainSkill":species_skill.get(ind.get("current_species_key")) or species_skill.get(target_key),
           "mainSkillLv":ind.get("main_skill_lv"),
+          "shiny":boolean_flag(ind.get("shiny"),iid+".shiny",allow_unknown=True),
           "foods":[ind.get("ingredient_1"),ind.get("ingredient_30"),ind.get("ingredient_60")],
           "foodPattern":ind.get("food_pattern"),"nature":ind.get("nature_name"),
           "natureUp":ind.get("nature_up"),"natureDown":ind.get("nature_down"),
@@ -273,8 +296,9 @@ def main():
     event_path=Path(__file__).resolve().parent.parent/"config"/"events.json"
     events=json.loads(event_path.read_text(encoding="utf-8")) if event_path.exists() else []
     generated_at=revision[:10] if re.match(r"^\d{4}-\d{2}-\d{2}",revision) else None
-    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","generatedAt":generated_at,"source":xlsx.name,"appVersion":"0.19"},
-          "individuals":app,"roles":app_roles,
+    data={"meta":{"title":"Pokémon Sleep Decision Hub","revision":revision,"schemaVersion":"1.1","generatedAt":generated_at,"source":xlsx.name,"appVersion":"0.19",
+                  "sourceIndividualCount":len(inds)},
+          "individuals":app,"inactiveIndividualIds":inactive_ids,"roles":app_roles,
           "coverage":{"food":coverage("食材"),"berry":coverage("きのみ"),"skill":coverage("スキル")},
           "resources":resources,"events":events,"coverageMatrix":coverage_matrix}
     target.write_text("window.APP_DATA="+json.dumps(data,ensure_ascii=False,separators=(",",":"))+";\n",encoding="utf-8")

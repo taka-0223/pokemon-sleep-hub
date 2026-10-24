@@ -227,7 +227,7 @@ function denseRow(p){
     ? '<div class="roster-pr"><small>'+esc(p.primaryMetric||"個体PR")+'</small><strong>'+esc(p.primaryPR)+'</strong>'+(p.topPercent!=null?'<span>上位'+esc(p.topPercent)+'%</span>':'')+'</div>'
     : '<div class="roster-pr is-empty"><small>個体PR</small><strong>—</strong><span>未測定</span></div>';
   return '<article class="dense-row roster-card '+roleClass(p.roleType)+'" data-id="'+esc(p.id)+'">'+
-    '<div class="roster-primary"><div class="roster-name-line"><span class="poke-name">'+esc(displayName(p))+'</span><span class="roster-level">Lv.'+esc(p.level)+'</span></div>'+
+    '<div class="roster-primary"><div class="roster-name-line"><span class="poke-name">'+esc(displayName(p))+(p.shiny===true?' <span class="shiny-marker" title="色違い">★</span>':'')+'</span><span class="roster-level">Lv.'+esc(p.level)+'</span></div>'+
       '<div class="roster-role">'+esc(p.roleName)+'</div></div>'+
     '<div class="roster-quality">'+qualityBadge(p.quality)+prMain+'</div>'+
     '<div class="roster-facts"><span>種族 '+tierText(p.speciesGrade)+'</span><span>SRP '+esc(srpText(p))+'</span></div>'+
@@ -385,11 +385,12 @@ function renderRefine(){
 function renderRoles(){
   const need={不足:0,未所持:0,育成待ち:1,充足予定:2,暫定充足:3,候補運用:3,条件付き充足:4,充足:5,特殊充足:5};
   const order=["食材","きのみ","スキル"];
+  const roleDataLabel=D.meta.legacyDecisionRevision?'旧評価の役割（参考）':'CURRENT ASSIGNMENT';
   $("#roleList").innerHTML=order.map(type=>{
     const list=D.roles.filter(r=>r.type===type).sort((a,b)=>(need[a.need]??9)-(need[b.need]??9)||String(a.name||"").localeCompare(String(b.name||""),"ja"));
     if(!list.length)return "";
     const filled=list.filter(r=>["充足","特殊充足"].includes(r.need)).length;
-    return '<section class="role-domain"><div class="role-domain-head"><div><span class="eyebrow">CURRENT ASSIGNMENT</span><h3>'+esc(type)+'</h3></div><span>'+filled+'/'+list.length+' 充足</span></div>'+
+    return '<section class="role-domain"><div class="role-domain-head"><div><span class="eyebrow">'+roleDataLabel+'</span><h3>'+esc(type)+'</h3></div><span>'+filled+'/'+list.length+' 充足</span></div>'+
       '<div class="role-domain-list">'+list.map(roleAssignmentCard).join("")+'</div></section>';
   }).join("");
   bindRows();
@@ -413,6 +414,13 @@ function renderPlan(){
   bindRows();
 }
 function detail(p){
+  // The historical r23 disposal suggestion is not valid after a confirmed
+  // shiny correction. Keep the original decision snapshot in data unchanged.
+  const supersededRelease=p.shiny===true&&/アメ化候補|博士送り/.test(String(p.disposition||""));
+  const shownDisposition=supersededRelease?'キープ（色違い保護）':p.disposition||'未設定';
+  const shownRationale=supersededRelease
+    ?'CURRENTで色違いと確認済み。旧公開版のアメ化候補判断は撤回されています。育成投資は未確定です。'
+    :p.rationale;
   const srp=srpFor(p);
   const measures=[...(p.measurements||[])].sort((a,b)=>(a.lv??999)-(b.lv??999)||String(a.metric).localeCompare(String(b.metric),"ja"));
   const rows=measures.length?measures.map(m=>'<tr><td>Lv'+esc(m.lv)+'</td><td>'+esc(m.metric)+'</td><td>'+esc(m.pr)+'</td><td>'+(typeof m.pr==="number"?'上位 '+(100-m.pr).toFixed(1)+'%':'—')+'</td></tr>').join(""):'<tr><td colspan="4">未測定</td></tr>';
@@ -422,7 +430,7 @@ function detail(p){
   return '<section class="detail-hero">'+
     '<div class="detail-role">'+esc(p.roleName)+'</div>'+
     '<div class="detail-identity"><div><h2>'+esc(displayName(p))+'</h2><span class="detail-level">Lv.'+esc(p.level)+'</span></div>'+qualityBadge(p.quality)+'</div>'+
-    '<div class="detail-tags"><span>種族 '+tierText(p.speciesGrade)+'</span><span>'+esc(p.foodPattern)+'</span><span class="'+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span></div>'+
+    '<div class="detail-tags"><span>種族 '+tierText(p.speciesGrade)+'</span><span>'+esc(p.foodPattern)+'</span><span class="'+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span>'+(p.shiny===true?'<span class="shiny-marker">★ 色違い</span>':'')+'</div>'+
     '<p class="detail-provenance">'+(p.decisionSnapshot?'品質・種族Tier・育成方針は旧公開 '+esc(p.decisionSnapshot)+' の参考情報です。':'品質・種族Tier・育成方針はまだ未設定です。')+'</p>'+
   '</section>'+
   '<div class="main-skill-card"><span class="main-skill-icon">✦</span><div><small>メインスキル</small><strong>'+esc(p.mainSkill||"未登録")+'</strong></div><span class="main-skill-lv">Lv.'+esc(p.mainSkillLv||"—")+'</span></div>'+
@@ -433,7 +441,7 @@ function detail(p){
   '<section class="detail-section"><div class="detail-section-head"><span>食材</span></div>'+foodGrid(p)+'</section>'+
   '<section class="detail-section">'+natureCard(p)+'</section>'+
   '<section class="detail-section subskill-section"><div class="detail-section-head"><span>サブスキル</span></div>'+subSkillGrid(p)+'</section>'+
-  '<section class="decision-card"><div class="decision-top"><div><small>この個体の方針</small><strong>'+esc(p.disposition||"未設定")+'</strong></div><span>'+esc(p.refinement||"—")+'</span></div><p>'+esc(p.rationale)+'</p></section>'+
+  '<section class="decision-card"><div class="decision-top"><div><small>この個体の方針'+(p.decisionSnapshot?'（旧評価・参考）':'')+'</small><strong>'+esc(shownDisposition)+'</strong></div><span>'+esc(p.refinement||"—")+'</span></div><p>'+esc(shownRationale)+'</p></section>'+
   '<details class="history-disclosure"><summary>PR履歴 <span>'+measures.length+'件</span></summary><table class="measure-table"><thead><tr><th>Lv</th><th>指標</th><th>PR</th><th>換算</th></tr></thead><tbody>'+rows+'</tbody></table></details>';
 }
 function openIndividual(id){

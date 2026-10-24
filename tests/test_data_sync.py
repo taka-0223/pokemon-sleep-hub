@@ -131,6 +131,24 @@ class TestPAccountMigration(unittest.TestCase):
         self.assertEqual(snapshot()[1],snapshot()[1])
 
 
+class TestRosterStateParsing(unittest.TestCase):
+    def test_boolean_and_text_false_both_remove_archived_individuals(self):
+        rows=copy.deepcopy(fixture())
+        rows["P_Individuals"][1][3]="True"
+        rows["P_Individuals"][2][3]="False"
+        rows["P_Individuals"][3][3]=True
+        d,_=snapshot(rows)
+        self.assertEqual([p["id"] for p in d["individuals"]],["IND-0001","IND-0003"])
+        self.assertEqual(d["inactiveIndividualIds"],["IND-0002"])
+        self.assertEqual(d["meta"]["sourceIndividualCount"],3)
+
+    def test_unknown_active_value_fails_closed(self):
+        rows=copy.deepcopy(fixture())
+        rows["P_Individuals"][2][3]="maybe"
+        with self.assertRaisesRegex(ValueError,"Invalid boolean flag"):
+            snapshot(rows)
+
+
 class TestFailClosed(unittest.TestCase):
     def test_pr_and_measurements_dropped_are_blocked(self):
         old=baseline(); new=copy.deepcopy(old)

@@ -16,7 +16,7 @@ from pathlib import Path
 
 FACT_FIELDS = (
     "id", "name", "level", "targetSpeciesName", "mainSkill", "mainSkillLv",
-    "foods", "foodPattern", "nature", "natureUp", "natureDown",
+    "shiny", "foods", "foodPattern", "nature", "natureUp", "natureDown",
     "subskills", "primaryMetric", "primaryPR", "primaryEvalLv",
     "topPercent", "measurements",
 )
@@ -57,6 +57,12 @@ def generate_from_derived(derived: Path, output: Path, workbook: Path):
     ids = [x.get("id") for x in rows]
     if not rows or len(ids) != len(set(ids)) or any(not x for x in ids):
         raise ValueError("Invalid CURRENT individual ID set")
+    inactive_ids = data.get("inactiveIndividualIds", [])
+    if (not isinstance(inactive_ids, list) or len(inactive_ids) != len(set(inactive_ids))
+            or any(not re.fullmatch(r"IND-\d{4}", str(x)) for x in inactive_ids)
+            or set(ids).intersection(inactive_ids)
+            or len(ids) + len(inactive_ids) != data.get("meta", {}).get("sourceIndividualCount")):
+        raise ValueError("Invalid CURRENT inactive roster reconciliation")
     facts = [{k: x.get(k) for k in FACT_FIELDS} for x in rows]
     if any(FORBIDDEN_FIELDS.intersection(x) for x in facts):
         raise ValueError("Forbidden decision field escaped into facts snapshot")
@@ -72,8 +78,10 @@ def generate_from_derived(derived: Path, output: Path, workbook: Path):
             "mode": "facts-only-provisional",
             "individualCount": len(facts),
             "prMeasuredCount": sum(x["primaryPR"] is not None for x in facts),
+            "sourceIndividualCount": len(ids) + len(inactive_ids),
         },
         "individuals": facts,
+        "inactiveIndividualIds": inactive_ids,
         "resources": data["resources"],
         "coverageMatrix": data["coverageMatrix"],
     }

@@ -348,6 +348,7 @@ dialog::backdrop{background:rgba(4,8,15,.78);backdrop-filter:blur(3px)}
   font-size:10px;
   font-weight:800
 }
+.detail-tags>.shiny-marker{color:#e4b650;border-color:rgba(228,182,80,.38)}
 .main-skill-card{
   margin:10px 0;
   padding:13px 14px;
@@ -1728,6 +1729,10 @@ dialog::backdrop{background:rgba(34,43,51,.38);backdrop-filter:blur(3px)}
   white-space:nowrap;
   font-size:15px;
   line-height:1.2
+}
+.shiny-marker{
+  color:#cc9f37;
+  font-weight:850
 }
 .roster-level{
   flex:none;

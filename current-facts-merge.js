@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
   const FIELDS = Object.freeze([
-    'id', 'name', 'level', 'targetSpeciesName', 'mainSkill', 'mainSkillLv',
+    'id', 'name', 'level', 'targetSpeciesName', 'mainSkill', 'mainSkillLv', 'shiny',
     'foods', 'foodPattern', 'nature', 'natureUp', 'natureDown',
     'subskills', 'primaryMetric', 'primaryPR', 'primaryEvalLv',
     'topPercent', 'measurements'
@@ -15,6 +15,7 @@
   function applyFacts(base, incoming) {
     if (!base || !incoming || !base.meta || !incoming.meta ||
         !Array.isArray(base.individuals) || !Array.isArray(incoming.individuals) ||
+        !Array.isArray(incoming.inactiveIndividualIds) ||
         !Array.isArray(base.roles) || !Array.isArray(incoming.coverageMatrix) ||
         !incoming.resources || typeof incoming.resources !== 'object')
       throw new Error('個体・役割・資源の入力形式が不正です');
@@ -24,13 +25,19 @@
         !/^\d{4}-\d{2}-\d{2}-r\d+$/.test(factsMeta.sourceRevision))
       throw new Error('CURRENTと旧評価のrevisionが一致しません');
     if (incoming.individuals.length !== factsMeta.individualCount ||
-        incoming.individuals.length < base.individuals.length ||
+        incoming.individuals.some(x => !x || typeof x.id !== 'string') ||
         new Set(incoming.individuals.map(x => x && x.id)).size !== incoming.individuals.length)
       throw new Error('手持ち個体の件数・IDに不整合があります');
+    const inactive = new Set(incoming.inactiveIndividualIds);
+    if (inactive.size !== incoming.inactiveIndividualIds.length ||
+        incoming.individuals.length + inactive.size !== factsMeta.sourceIndividualCount ||
+        incoming.inactiveIndividualIds.some(id => !/^IND-\d{4}$/.test(id)) ||
+        incoming.individuals.some(x => inactive.has(x.id)))
+      throw new Error('非アクティブ個体のID・件数に不整合があります');
     const known = new Map(base.individuals.map(x => [x.id, x]));
     for (const id of known.keys()) {
-      if (!incoming.individuals.some(x => x && x.id === id))
-        throw new Error('過去の個体が欠落しています: ' + id);
+      if (!incoming.individuals.some(x => x && x.id === id) && !inactive.has(id))
+        throw new Error('処遇記録のない過去個体が欠落しています: ' + id);
     }
     const next = incoming.individuals.map(f => {
       if (!f || !/^IND-\d{4}$/.test(f.id)) throw new Error('個体IDが不正です');
@@ -41,6 +48,8 @@
       if (f.primaryPR != null &&
           (typeof f.primaryPR !== 'number' || f.primaryPR < 0 || f.primaryPR > 100))
         throw new Error('PRの値が不正です: ' + f.id);
+      if (f.shiny !== null && typeof f.shiny !== 'boolean')
+        throw new Error('色違いの事実値が不正です: ' + f.id);
       const legacy = known.get(f.id);
       const individual = legacy ? {...legacy} : Object.fromEntries(DECISIONS.map(k => [k,null]));
       for (const k of FIELDS) individual[k] = f[k];
@@ -61,7 +70,8 @@
       ...base,
       meta: {...base.meta, currentFactsRevision: factsMeta.sourceRevision,
              currentFactsCount: next.length, currentFactsMeasured: factsMeta.prMeasuredCount,
-             legacyDecisionRevision: base.meta.revision, overlayMode: factsMeta.mode},
+             legacyDecisionRevision: base.meta.revision, overlayMode: factsMeta.mode,
+             inactiveFactsCount: inactive.size},
       individuals: next,
       // Keep the original published candidate Tiers, quality, roles, and
       // priorities as *historical references*, never as current decisions.

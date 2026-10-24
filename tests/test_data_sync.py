@@ -359,20 +359,61 @@ class TestAssessmentKeyIntegrity(unittest.TestCase):
                 ["blastoise",assessment_key,"S","active"])
         return rows
 
-    def test_fact_only_master_does_not_invent_tier_or_candidate(self):
+    def test_fact_only_master_does_not_invent_tier(self):
         generated,_=snapshot(self.target_fixture("milk_cacao_mixed"))
         self.assertIsNone(generated["individuals"][0]["speciesGrade"])
-        self.assertEqual(generated["roles"][0]["targetCandidates"],[])
+        candidate=generated["roles"][0]["targetCandidates"][0]
+        self.assertEqual(candidate["speciesKey"],"blastoise")
+        self.assertIsNone(candidate["grade"])
+        self.assertEqual(candidate["assessmentStatus"],"unrated")
+        self.assertTrue(candidate["preferred"])
         self.assertEqual(generated["individuals"][0]["targetSpeciesName"],"カメックス")
 
     def test_role_key_alignment_reuses_existing_assessment_tier(self):
         misaligned,_=snapshot(self.target_fixture("milk_cacao_mixed","milk_cacao"))
         aligned,_=snapshot(self.target_fixture("milk_cacao_mixed","milk_cacao_mixed"))
         self.assertIsNone(misaligned["individuals"][0]["speciesGrade"])
-        self.assertEqual(misaligned["roles"][0]["targetCandidates"],[])
+        self.assertIsNone(misaligned["roles"][0]["targetCandidates"][0]["grade"])
+        self.assertEqual(misaligned["roles"][0]["targetCandidates"][0]["assessmentStatus"],"unrated")
         self.assertEqual(aligned["individuals"][0]["speciesGrade"],"S")
         self.assertEqual(aligned["roles"][0]["targetCandidates"][0]["grade"],"S")
         self.assertEqual(aligned["roles"][0]["targetCandidates"][0]["speciesKey"],"blastoise")
+
+    def test_unassessed_oil_or_berry_target_is_visible_but_ungraded(self):
+        for role_key,species_key,display,role_type in (
+            ("oil_specialist","ditto","メタモン","食材"),
+            ("berry_electric","raichu","ライチュウ","きのみ"),
+        ):
+            with self.subTest(role_key):
+                rows=copy.deepcopy(fixture())
+                rows["M_Species"]=[
+                    ["species_key","display_name","family_key","stage","final_form_key"],
+                    [species_key,display,species_key+"_family",2,species_key],
+                ]
+                rows["P_RoleSlots"]=[
+                    ["role_slot_id","role_key","role_type","upgrade_target_species"],
+                    ["ROLE-001",role_key,role_type,species_key],
+                ]
+                rows["M_SpeciesAssessment"]=[
+                    ["species_key","role_key","grade","status"],
+                ]
+                d,_=snapshot(rows)
+                candidate=d["roles"][0]["targetCandidates"]
+                self.assertEqual(len(candidate),1)
+                self.assertEqual(candidate[0]["name"],display)
+                self.assertIsNone(candidate[0]["grade"])
+                self.assertEqual(candidate[0]["assessmentStatus"],"unrated")
+
+    def test_missing_target_and_assessment_keeps_candidate_array_empty(self):
+        rows=copy.deepcopy(fixture())
+        rows["P_RoleSlots"]=[
+            ["role_slot_id","role_key","role_type","upgrade_target_species"],
+            ["ROLE-001","completely_unassigned","食材",None],
+        ]
+        rows["M_SpeciesAssessment"]=[["species_key","role_key","grade","status"]]
+        d,_=snapshot(rows)
+        self.assertEqual(d["roles"][0]["targetCandidates"],[])
+
 
 
 class TestCurrentRevisionIntegrity(unittest.TestCase):

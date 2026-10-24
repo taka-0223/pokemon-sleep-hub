@@ -190,7 +190,17 @@ def main():
         preferred=first(r,"target_species_key","upgrade_target_species","upgrade_target_species_key")
         xs=assess_by_role.get(r.get("role_key"),[])
         xs=sorted(xs,key=lambda a:(0 if a.get("species_key")==preferred else 1,grade_order.get(a.get("grade"),9),species_name.get(a.get("species_key")) or str(a.get("species_key") or "")))
-        return [{"speciesKey":a.get("species_key"),"name":species_name.get(a.get("species_key")) or a.get("species_key"),"displayLabel":species_display_label(a.get("species_key")),"grade":a.get("grade"),"preferred":a.get("species_key")==preferred} for a in xs]
+        candidates=[{"speciesKey":a.get("species_key"),"name":species_name.get(a.get("species_key")) or a.get("species_key"),"displayLabel":species_display_label(a.get("species_key")),"grade":a.get("grade"),"preferred":a.get("species_key")==preferred} for a in xs]
+        # A recorded upgrade target is an account decision, not a Species
+        # Assessment. When no role-grade is recorded, show the target name
+        # explicitly as UNRATED instead of fabricating a Tier or an empty slot.
+        if not candidates and preferred:
+            candidates=[{"speciesKey":preferred,
+                         "name":species_name.get(preferred) or preferred,
+                         "displayLabel":species_display_label(preferred),
+                         "grade":None, "preferred":True,
+                         "assessmentStatus":"unrated"}]
+        return candidates
     meas={}
     for m in measurements:
         # Scenario-only measurements are not formal individual performance.

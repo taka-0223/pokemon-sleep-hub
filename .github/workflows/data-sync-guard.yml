@@ -19,8 +19,8 @@ jobs:
           fetch-depth: 0
       - name: Verify generator and change-gate unit tests
         run: |
-          python3 -m py_compile scripts/build_data.py scripts/check_data_sync.py
-          python3 -m unittest discover -s tests -p 'test_data_sync.py' -v
+          python3 -m py_compile scripts/build_data.py scripts/check_data_sync.py scripts/build_current_decisions.py
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
       - name: Block unreviewed public snapshot changes
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}

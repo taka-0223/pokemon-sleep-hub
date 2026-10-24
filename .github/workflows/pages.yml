@@ -19,17 +19,20 @@ jobs:
 
       - name: Validate source
         run: |
-          python3 -m py_compile scripts/build_srp.py scripts/build_data.py scripts/build_current_facts.py
+          python3 -m py_compile scripts/build_srp.py scripts/build_data.py scripts/build_current_facts.py scripts/build_current_decisions.py
           node --check app.js
           node --check data.js
           node --check current-facts.js
           node --check current-facts-merge.js
+          node --check current-decisions.js
+          node --check current-decisions-merge.js
           node --check srp.js
           node --check updates.js
           node --check data-gate.js
           node --check data-gate-ui.js
           node --test tests/data-gate.test.cjs
           node --test tests/current-facts.test.cjs
+          node --test tests/current-decisions.test.cjs
           grep -q '"status":"ready"' srp.js
 
       - name: Verify SRP generator
@@ -54,6 +57,8 @@ jobs:
             data.js
             current-facts.js
             current-facts-merge.js
+            current-decisions.js
+            current-decisions-merge.js
             srp.js
             updates.js
             manifest.webmanifest

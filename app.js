@@ -184,7 +184,7 @@ function currentRoleHtml(r){
   const aligned=p.roleId===r.id;
   let meta=h.kind;
   if(aligned){
-    meta+=' ・ 個体 <i class="path-quality '+tierClass(p.quality)+'">'+esc(p.quality||"—")+'</i>';
+    meta+=' ・ 個体 <i class="path-quality '+tierClass(p.quality)+'">'+esc(p.quality||"未評価")+'</i>';
     if(p.primaryPR!=null)meta+=' ・ PR'+esc(p.primaryPR);
   }else{
     meta+=' ・ 兼任';
@@ -241,7 +241,7 @@ function rolePersonPanel(label,id,r){
   const p=id&&individualById[id];
   if(!p)return "";
   const aligned=p.roleId===r.id;
-  const relation=aligned?(p.quality?'個体 '+p.quality:'評価あり'):'兼任';
+  const relation=aligned?(p.quality?'個体 '+p.quality:'個体評価未確定'):'兼任';
   const pr=aligned&&p.primaryPR!=null?' ・ PR'+p.primaryPR:'';
   return '<button type="button" class="role-person individual-link" data-individual-id="'+esc(p.id)+'"><small>'+esc(label)+'</small><strong>'+esc(displayName(p))+' <em>Lv.'+esc(p.level)+'</em></strong><span>'+esc(relation)+esc(pr)+'</span></button>';
 }
@@ -433,7 +433,8 @@ function detail(p){
     ?'（CURRENT'+(p.currentDecisionStatus==='provisional'?'・暫定':'')+'）'
     :(p.decisionSnapshot?'（旧評価・参考）':'');
   const decisionProvenance=hasCurrentDecision
-    ?'この個体の方針はCURRENT '+esc(p.decisionSnapshot)+'（記録日 '+esc(p.currentDecisionDate)+'）に基づきます。品質・種族Tierは旧公開 '+esc(D.meta.legacyDecisionRevision)+' の参考情報です。'
+    ?'この個体の方針はCURRENT '+esc(p.decisionSnapshot)+'（記録日 '+esc(p.currentDecisionDate)+'）に基づきます。'+
+      (p.quality!=null||p.speciesGrade!=null?'品質・種族Tierは旧公開 '+esc(D.meta.legacyDecisionRevision)+' の参考情報です。':'個体品質・種族Tierは未評価です。')
     :(p.decisionSnapshot?'品質・種族Tier・育成方針は旧公開 '+esc(p.decisionSnapshot)+' の参考情報です。':'品質・種族Tier・育成方針はまだ未設定です。');
   const srp=srpFor(p);
   const measures=[...(p.measurements||[])].sort((a,b)=>(a.lv??999)-(b.lv??999)||String(a.metric).localeCompare(String(b.metric),"ja"));

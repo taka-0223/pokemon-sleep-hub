@@ -7,9 +7,9 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f6ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2530" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="./manifest.webmanifest?v=0.26-r35">
-<link rel="stylesheet" href="./style.css?v=0.26-r35">
-<link rel="stylesheet" href="./data-gate.css?v=0.26-r35">
+<link rel="manifest" href="./manifest.webmanifest?v=0.27-decisions">
+<link rel="stylesheet" href="./style.css?v=0.27-decisions">
+<link rel="stylesheet" href="./data-gate.css?v=0.27-decisions">
 <style>
 .facts-status{margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px;line-height:1.7}
 .facts-status[data-status="current"]{color:var(--text)}
@@ -38,7 +38,7 @@
   <div id="factsStatus" class="facts-status" role="status" aria-live="polite">手持ち・PRの更新状態を確認しています…</div>
   <section id="home" class="view active">
     <div class="page-title"><div><span class="eyebrow">ACCOUNT OVERVIEW</span><h2>現状</h2></div></div>
-    <p class="lede home-lede">手持ち・PRはCURRENTの記録です。厳選と育成優先順位は旧公開評価の参考情報で、現在の正式なおすすめではありません。</p>
+    <p class="lede home-lede">手持ち・PR・役割の担当状態はCURRENTの記録です。直近の個体方針も一部反映しました。種族Tier・厳選候補・それ以外の育成優先順位は旧公開評価の参考情報です。</p>
 
     <div id="homePulse" class="home-pulse-grid"></div>
 
@@ -84,7 +84,7 @@
 
   <section id="roles" class="view">
     <div class="page-title"><div><span class="eyebrow">ROLE MAP</span><h2>役割一覧</h2></div></div>
-    <p class="lede">現在の担当状況を確認する画面です。厳選候補や更新目標は「厳選」で確認できます。</p>
+    <p class="lede">現行CURRENTの担当・バックアップと充足状態を確認できます。厳選候補のTierは旧公開の参考情報です。</p>
     <div id="roleList" class="compact-list"></div>
   </section>
 
@@ -204,20 +204,22 @@
   <section id="dataGateResult" class="gate-result" aria-live="polite"></section>
   <details class="gate-source"><summary>参照元・入力の扱い</summary><p id="dataGateSource"></p></details>
 </dialog>
-<script src="./data.js?v=0.26-r35"></script>
-<script src="./current-facts.js?v=0.26-r35"></script>
-<script src="./current-facts-merge.js?v=0.26-r35"></script>
-<script src="./updates.js?v=0.26-r35"></script>
-<script src="./srp.js?v=0.26-r35"></script>
-<script src="./data-gate.js?v=0.26-r35"></script>
-<script src="./app.js?v=0.26-r35"></script>
-<script src="./data-gate-ui.js?v=0.26-r35"></script>
+<script src="./data.js?v=0.27-decisions"></script>
+<script src="./current-facts.js?v=0.27-decisions"></script>
+<script src="./current-facts-merge.js?v=0.27-decisions"></script>
+<script src="./current-decisions.js?v=0.27-decisions"></script>
+<script src="./current-decisions-merge.js?v=0.27-decisions"></script>
+<script src="./updates.js?v=0.27-decisions"></script>
+<script src="./srp.js?v=0.27-decisions"></script>
+<script src="./data-gate.js?v=0.27-decisions"></script>
+<script src="./app.js?v=0.27-decisions"></script>
+<script src="./data-gate-ui.js?v=0.27-decisions"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;
-      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.26-r35", { updateViaCache: "none" });
+      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.27-decisions", { updateViaCache: "none" });
       await reg.update();
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {

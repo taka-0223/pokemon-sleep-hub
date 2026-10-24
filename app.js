@@ -67,14 +67,17 @@ const statusClass=s=>"state-"+statusKind(s);
 const roleClass=t=>t==="食材"?"role-food":t==="きのみ"?"role-berry":t==="スキル"?"role-skill":"role-other";
 const normalizeName=s=>String(s||"").replaceAll("（","(").replaceAll("）",")");
 const FACTS_STATUS=window.APP_FACTS_STATUS||{applied:false};
+const DECISIONS_STATUS=window.APP_DECISIONS_STATUS||{applied:false};
 $("#revision").textContent=FACTS_STATUS.applied
-  ?"手持ち "+(D.meta.currentFactsRevision||"—")+" · 評価 "+(D.meta.legacyDecisionRevision||"—")
+  ?"手持ち "+(D.meta.currentFactsRevision||"—")+(DECISIONS_STATUS.applied?" · 方針一部更新":" · 旧評価参考")
   :"data "+(D.meta.revision||"—")+" · app v"+(D.meta.appVersion||"—");
 const provenanceBar=$("#factsStatus");
 if(provenanceBar){
   const count=D.individuals.filter(p=>p.primaryPR!=null).length;
   provenanceBar.textContent=FACTS_STATUS.applied
-    ?"手持ち・PR・資源：CURRENT "+FACTS_STATUS.revision+"（"+D.individuals.length+"体／PR "+count+"体）。種族Tier・厳選候補・育成優先順位：旧公開 "+FACTS_STATUS.decisionRevision+" の参考情報（現在の正式判断ではありません）。"
+    ?"手持ち・PR・資源：CURRENT "+FACTS_STATUS.revision+"（"+D.individuals.length+"体／PR "+count+"体）。"+
+      (DECISIONS_STATUS.applied?"全33役割の担当と直近の個体方針 "+DECISIONS_STATUS.count+"体もCURRENTから反映。":"直近の個体方針と役割担当は未反映。")+
+      "種族Tier・厳選候補・その他の判断：旧公開 "+FACTS_STATUS.decisionRevision+" の参考情報。"
     :"最新の手持ちデータは未反映です。現在は旧公開r23を表示しています。設定から「更新を適用」または再読み込みをお試しください。";
   provenanceBar.dataset.status=FACTS_STATUS.applied?"current":"fallback";
 }
@@ -250,7 +253,7 @@ function roleAssignmentCard(r){
     ? '<div class="role-people'+(people.length===1?' is-single':'')+'">'+people.join("")+'</div>'
     : '<div class="role-empty-state"><small>現在の担当</small><strong>担当なし</strong></div>';
   const note=r.note
-    ? '<details class="role-note-disclosure"><summary>判断メモ</summary><p>'+esc(r.note)+'</p></details>'
+    ? '<details class="role-note-disclosure"><summary>'+(r.recentNoteSnapshot?'現行の判断メモ':'判断メモ（旧公開・参考）')+'</summary><p>'+esc(r.note)+'</p></details>'
     : '';
   return '<article class="role-assignment '+roleClass(r.type)+'">'+
     '<div class="role-assignment-head"><div class="compact-name">'+esc(r.name)+'</div>'+
@@ -271,7 +274,7 @@ function compactRole(r,refine){
       (rs.done?'':'<span class="refine-priority priority-'+prioritySlug(r.priority)+'">優先度 '+esc(r.priority||"—")+'</span>')+'</div></div>'+
       '<div class="refine-path">'+currentRoleHtml(r)+'<span class="path-arrow" aria-hidden="true">→</span>'+goalRoleHtml(r,rs.done)+'</div>'+
       (rs.done?'':alternativeCandidatesHtml(r))+
-      '<div class="compact-note">'+esc(r.note)+'</div></article>';
+      '<div class="compact-note">'+(r.recentNoteSnapshot?'':'旧公開メモ（参考）：')+esc(r.note)+'</div></article>';
   }
   return '<article class="compact-row '+roleClass(r.type)+'"><div class="compact-top"><div><div class="compact-name">'+esc(r.name)+'</div>'+
     '<div class="compact-meta">'+esc(r.type)+(holder?' ・ '+esc(holder):'')+'</div></div>'+
@@ -360,7 +363,9 @@ function renderHome(){
   ];
   $("#homeSummary").innerHTML=
     '<div class="home-summary-grid">'+summary.map(x=>'<div><small>'+x[0]+'</small><strong>'+x[1]+'</strong></div>').join("")+'</div>'+
-    '<div class="home-data-line"><span>手持ち '+esc(D.meta.currentFactsRevision||D.meta.revision||"—")+'</span><span>評価 '+esc(D.meta.legacyDecisionRevision||D.meta.revision||"—")+'（参考）</span></div>';
+    '<div class="home-data-line"><span>手持ち '+esc(D.meta.currentFactsRevision||D.meta.revision||"—")+'</span>'+
+    (D.meta.currentDecisionRevision?'<span>直近方針 '+esc(D.meta.currentDecisionCount)+'体・'+esc(D.meta.currentDecisionRevision)+'</span>':'')+
+    '<span>その他の評価 '+esc(D.meta.legacyDecisionRevision||D.meta.revision||"—")+'（参考）</span></div>';
 
   bindHomeActions();
   bindRows();
@@ -376,16 +381,18 @@ function renderRefine(){
   const showDone=!!appSettings.showCompletedRefine;
   if(!showDone)list=list.filter(r=>!refineState(r).done);
   const lead=$("#refineLead");
+  const assignmentLabel=D.meta.currentAssignmentsRevision?'役割の担当・状態はCURRENT':'役割の担当・状態も旧公開の参考情報';
   if(lead)lead.textContent=showDone
-    ?"厳選中を上に、完了済みを下に表示。現状→更新目標と候補種を確認できます。"
-    :"厳選中・条件付きのみ表示中。現状→更新目標と候補種を確認できます。";
+    ?"厳選中を上に、完了済みを下に表示。"+assignmentLabel+"、候補種とTierは旧評価（参考）です。"
+    :"厳選中・条件付きのみ表示中。"+assignmentLabel+"、候補種とTierは旧評価（参考）です。";
   $("#refineList").innerHTML=list.length?list.map(r=>compactRole(r,true)).join(""):'<div class="lede">表示対象の役割がありません。</div>';
   bindRows();
 }
 function renderRoles(){
   const need={不足:0,未所持:0,育成待ち:1,充足予定:2,暫定充足:3,候補運用:3,条件付き充足:4,充足:5,特殊充足:5};
   const order=["食材","きのみ","スキル"];
-  const roleDataLabel=D.meta.legacyDecisionRevision?'旧評価の役割（参考）':'CURRENT ASSIGNMENT';
+  const roleDataLabel=D.meta.currentAssignmentsRevision?'担当 CURRENT（候補Tierは旧参考）':
+    (D.meta.legacyDecisionRevision?'旧評価の役割（参考）':'CURRENT ASSIGNMENT');
   $("#roleList").innerHTML=order.map(type=>{
     const list=D.roles.filter(r=>r.type===type).sort((a,b)=>(need[a.need]??9)-(need[b.need]??9)||String(a.name||"").localeCompare(String(b.name||""),"ja"));
     if(!list.length)return "";
@@ -421,6 +428,13 @@ function detail(p){
   const shownRationale=supersededRelease
     ?'CURRENTで色違いと確認済み。旧公開版のアメ化候補判断は撤回されています。育成投資は未確定です。'
     :p.rationale;
+  const hasCurrentDecision=!!p.currentDecisionDate&&p.decisionSnapshot===D.meta.currentDecisionRevision;
+  const decisionLabel=hasCurrentDecision
+    ?'（CURRENT'+(p.currentDecisionStatus==='provisional'?'・暫定':'')+'）'
+    :(p.decisionSnapshot?'（旧評価・参考）':'');
+  const decisionProvenance=hasCurrentDecision
+    ?'この個体の方針はCURRENT '+esc(p.decisionSnapshot)+'（記録日 '+esc(p.currentDecisionDate)+'）に基づきます。品質・種族Tierは旧公開 '+esc(D.meta.legacyDecisionRevision)+' の参考情報です。'
+    :(p.decisionSnapshot?'品質・種族Tier・育成方針は旧公開 '+esc(p.decisionSnapshot)+' の参考情報です。':'品質・種族Tier・育成方針はまだ未設定です。');
   const srp=srpFor(p);
   const measures=[...(p.measurements||[])].sort((a,b)=>(a.lv??999)-(b.lv??999)||String(a.metric).localeCompare(String(b.metric),"ja"));
   const rows=measures.length?measures.map(m=>'<tr><td>Lv'+esc(m.lv)+'</td><td>'+esc(m.metric)+'</td><td>'+esc(m.pr)+'</td><td>'+(typeof m.pr==="number"?'上位 '+(100-m.pr).toFixed(1)+'%':'—')+'</td></tr>').join(""):'<tr><td colspan="4">未測定</td></tr>';
@@ -431,7 +445,7 @@ function detail(p){
     '<div class="detail-role">'+esc(p.roleName)+'</div>'+
     '<div class="detail-identity"><div><h2>'+esc(displayName(p))+'</h2><span class="detail-level">Lv.'+esc(p.level)+'</span></div>'+qualityBadge(p.quality)+'</div>'+
     '<div class="detail-tags"><span>種族 '+tierText(p.speciesGrade)+'</span><span>'+esc(p.foodPattern)+'</span><span class="'+statusClass(p.roleNeed)+'">'+esc(p.roleNeed)+'</span>'+(p.shiny===true?'<span class="shiny-marker">★ 色違い</span>':'')+'</div>'+
-    '<p class="detail-provenance">'+(p.decisionSnapshot?'品質・種族Tier・育成方針は旧公開 '+esc(p.decisionSnapshot)+' の参考情報です。':'品質・種族Tier・育成方針はまだ未設定です。')+'</p>'+
+    '<p class="detail-provenance">'+decisionProvenance+'</p>'+
   '</section>'+
   '<div class="main-skill-card"><span class="main-skill-icon">✦</span><div><small>メインスキル</small><strong>'+esc(p.mainSkill||"未登録")+'</strong></div><span class="main-skill-lv">Lv.'+esc(p.mainSkillLv||"—")+'</span></div>'+
   '<div class="score-grid">'+
@@ -441,7 +455,7 @@ function detail(p){
   '<section class="detail-section"><div class="detail-section-head"><span>食材</span></div>'+foodGrid(p)+'</section>'+
   '<section class="detail-section">'+natureCard(p)+'</section>'+
   '<section class="detail-section subskill-section"><div class="detail-section-head"><span>サブスキル</span></div>'+subSkillGrid(p)+'</section>'+
-  '<section class="decision-card"><div class="decision-top"><div><small>この個体の方針'+(p.decisionSnapshot?'（旧評価・参考）':'')+'</small><strong>'+esc(shownDisposition)+'</strong></div><span>'+esc(p.refinement||"—")+'</span></div><p>'+esc(shownRationale)+'</p></section>'+
+  '<section class="decision-card"><div class="decision-top"><div><small>この個体の方針'+decisionLabel+'</small><strong>'+esc(shownDisposition)+'</strong></div><span>'+esc(p.refinement||"—")+'</span></div><p>'+esc(shownRationale)+'</p></section>'+
   '<details class="history-disclosure"><summary>PR履歴 <span>'+measures.length+'件</span></summary><table class="measure-table"><thead><tr><th>Lv</th><th>指標</th><th>PR</th><th>換算</th></tr></thead><tbody>'+rows+'</tbody></table></details>';
 }
 function openIndividual(id){
@@ -470,6 +484,8 @@ function renderAppInfo(){
   const info=[
     ["アプリ","v"+(D.meta.appVersion||"—")],
     ["手持ち・PR・資源",D.meta.currentFactsRevision||"旧公開 "+(D.meta.revision||"—")],
+    ["RoleSlot担当・状態",D.meta.currentAssignmentsRevision||"旧公開 "+(D.meta.revision||"—")],
+    ["直近の個体方針",D.meta.currentDecisionRevision?D.meta.currentDecisionRevision+"（"+D.meta.currentDecisionCount+"体）":"未反映"],
     ["種族Tier・厳選・育成方針","旧公開 "+(D.meta.legacyDecisionRevision||D.meta.revision||"—")+"（参考）"],
     ["データ",D.meta.revision||"—"],
     ["データ更新日",D.meta.generatedAt||"—"],
@@ -482,7 +498,9 @@ function renderAppInfo(){
 }
 function renderSettings(){
   $("#settingsVersion").textContent="app v"+(D.meta.appVersion||"—");
-  $("#settingsDataRevision").textContent="手持ち "+(D.meta.currentFactsRevision||D.meta.revision||"—")+" ／ 評価 "+(D.meta.legacyDecisionRevision||D.meta.revision||"—")+"（参考）";
+  $("#settingsDataRevision").textContent="手持ち "+(D.meta.currentFactsRevision||D.meta.revision||"—")+
+    (D.meta.currentDecisionRevision?" ／ 直近方針 "+D.meta.currentDecisionCount+"体（"+D.meta.currentDecisionRevision+"）":"")+
+    " ／ その他の評価 "+(D.meta.legacyDecisionRevision||D.meta.revision||"—")+"（参考）";
   $("#themeMode").value=appSettings.theme;
   $("#showCompletedRefine").checked=!!appSettings.showCompletedRefine;
   $("#updateStatus").textContent="更新状況を確認できます。";
@@ -502,6 +520,10 @@ function parseRemoteFacts(text){
   const src=String(text||"").trim().replace(/^window\.APP_CURRENT_FACTS=/,"").replace(/;$/,"");
   return JSON.parse(src);
 }
+function parseRemoteDecisions(text){
+  const src=String(text||"").trim().replace(/^window\.APP_CURRENT_DECISIONS=/,"").replace(/;$/,"");
+  return JSON.parse(src);
+}
 async function checkForUpdates(){
   const status=$("#updateStatus"),apply=$("#applyUpdate"),check=$("#checkUpdate");
   status.textContent="更新を確認しています…";
@@ -510,25 +532,31 @@ async function checkForUpdates(){
   try{
     const reg=await navigator.serviceWorker?.getRegistration?.();
     if(reg)await reg.update();
-    const [res,factsRes]=await Promise.all([
+    const [res,factsRes,decisionsRes]=await Promise.all([
       fetch("./data.js?update-check="+Date.now(),{cache:"no-store"}),
-      fetch("./current-facts.js?update-check="+Date.now(),{cache:"no-store"})
+      fetch("./current-facts.js?update-check="+Date.now(),{cache:"no-store"}),
+      fetch("./current-decisions.js?update-check="+Date.now(),{cache:"no-store"})
     ]);
-    if(!res.ok||!factsRes.ok)throw new Error("HTTP "+res.status+"/"+factsRes.status);
+    if(!res.ok||!factsRes.ok||!decisionsRes.ok)throw new Error("HTTP "+res.status+"/"+factsRes.status+"/"+decisionsRes.status);
     const remote=parseRemoteData(await res.text());
     const remoteFacts=parseRemoteFacts(await factsRes.text());
+    const remoteDecisions=parseRemoteDecisions(await decisionsRes.text());
     const appChanged=String(remote.meta?.appVersion||"")!==String(D.meta.appVersion||"");
     const dataChanged=String(remote.meta?.revision||"")!==String(D.meta.revision||"");
     const factsChanged=String(remoteFacts.meta?.sourceRevision||"")!==String(D.meta.currentFactsRevision||"");
-    if(appChanged||dataChanged||factsChanged){
+    const decisionsChanged=String(remoteDecisions.meta?.sourceRevision||"")!==String(D.meta.currentDecisionRevision||"") ||
+      Number(remoteDecisions.meta?.decisionCount||0)!==Number(D.meta.currentDecisionCount||0);
+    if(appChanged||dataChanged||factsChanged||decisionsChanged){
       const parts=[];
       if(appChanged)parts.push("app v"+remote.meta.appVersion);
       if(dataChanged)parts.push("旧評価データ "+remote.meta.revision);
       if(factsChanged)parts.push("手持ち "+(remoteFacts.meta?.sourceRevision||"未確認"));
+      if(decisionsChanged)parts.push("個体方針 "+(remoteDecisions.meta?.sourceRevision||"未確認"));
       status.textContent="更新があります： "+parts.join(" / ");
       apply.hidden=false;
     }else{
-      status.textContent="最新です。 手持ち "+(D.meta.currentFactsRevision||"未適用")+" / 評価 "+(D.meta.revision||"—")+"（参考）";
+      status.textContent="最新です。 手持ち "+(D.meta.currentFactsRevision||"未適用")+
+        " / 直近方針 "+(D.meta.currentDecisionCount||0)+"体 / その他の評価 "+(D.meta.revision||"—")+"（参考）";
     }
   }catch(e){
     status.textContent="更新確認に失敗しました。通信状態を確認してください。";

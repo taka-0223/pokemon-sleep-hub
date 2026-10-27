@@ -46,22 +46,19 @@ jobs:
           "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=10000 --user-data-dir=/tmp/roster-chrome --dump-dom "$ROOT/?smoke=$GITHUB_SHA#roster" > /tmp/pwa-roster.html 2>/tmp/roster-chrome.err
           "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=10000 --user-data-dir=/tmp/roles-chrome --dump-dom "$ROOT/?smoke=$GITHUB_SHA#roles" > /tmp/pwa-roles.html 2>/tmp/roles-chrome.err
           python3 - <<'PY'
-          from html.parser import HTMLParser
           from pathlib import Path
-          class Counter(HTMLParser):
-            def __init__(self):super().__init__();self.roster=0;self.roles=0;self.coverage=0
-            def handle_starttag(self,tag,attrs):
-              cls=set(dict(attrs).get('class','').split())
-              if tag=='article' and {'dense-row','roster-card'}<=cls:self.roster+=1
-              if tag=='article' and 'role-assignment' in cls:self.roles+=1
-              if tag=='article' and 'coverage-r36' not in cls and False:self.coverage+=1
           roster=Path('/tmp/pwa-roster.html').read_text()
           rolehtml=Path('/tmp/pwa-roles.html').read_text()
-          a,b=Counter(),Counter();a.feed(roster);b.feed(rolehtml)
-          assert a.roster==35, f'Roster visual DOM count {a.roster} != 35'
-          assert b.roles==33, f'Role visual DOM count {b.roles} != 33'
-          assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml, 'Phase6 provisional UI missing'
-          assert 'IND-0041' in rolehtml, 'Corn backup IND-0041 not rendered'
+          assert 'id="rosterList"' in roster and 'id="refine"' in roster, 'Roster area not loaded'
+          roster_section=roster.split('id="rosterList"',1)[1].split('id="refine"',1)[0]
+          roster_count=roster_section.count('class="dense-row roster-card')
+          assert 'id="roleList"' in rolehtml and 'id="coverageList"' in rolehtml, 'Roles area not loaded'
+          role_section=rolehtml.split('id="roleList"',1)[1].split('id="coverageList"',1)[0]
+          role_count=role_section.count('class="role-assignment ')
+          assert roster_count==35, f'Roster DOM count {roster_count} != 35'
+          assert role_count==33, f'Role DOM count {role_count} != 33'
+          assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml, 'Phase6 provisional labels missing'
+          assert 'IND-0041' in role_section, 'Corn backup IND-0041 not rendered'
           assert 'CURRENT 2026-10-25-r36' in roster
-          print(f'RENDER PASS: roster {a.roster}, roles {b.roles}, Phase6 provisional labels, corn backup')
+          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Phase6 provisional labels, corn backup')
           PY

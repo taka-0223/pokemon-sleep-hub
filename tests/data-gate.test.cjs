@@ -66,7 +66,7 @@ test("DP-T07: モデル未算出は不足情報でも供給0でもない",()=>{
   assert.deepEqual(r.ask_only,[]);
   assert.ok(!r.reason_for_check.includes("0として"));
 });
-test("DP-T08: コード導入で公開個体・RoleSlot・PRを変更しない",()=>{
+test("DP-T08: Data Gateは現行r36の公開個体・RoleSlot・PRを変更しない",()=>{
   const content=fs.readFileSync(path.join(__dirname,"../data.js"),"utf8");
   const sandbox={window:{}};
   vm.runInNewContext(content,sandbox);
@@ -74,8 +74,9 @@ test("DP-T08: コード導入で公開個体・RoleSlot・PRを変更しない",
   const original=JSON.stringify(d);
   gate.evaluate({...base,decision_type:"invest"});
   assert.equal(JSON.stringify(d),original);
-  assert.equal(d.meta.revision,"2026-10-15-r23");
-  assert.equal(d.individuals.length,38);
+  assert.equal(d.meta.revision,"2026-10-25-r36");
+  assert.equal(d.individuals.length,35);
+  assert.equal(d.individuals.filter(x=>x.primaryPR!=null).length,30);
   assert.equal(d.roles.length,33);
 });
 test("0は未確認値ではない",()=>{

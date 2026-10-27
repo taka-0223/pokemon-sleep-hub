@@ -1,0 +1,13 @@
+{
+  "revision": "2026-10-25-r36",
+  "source_sha256": "c1e2bd728d900bad97896f2d92f1e94cd481cd996dbd8b3aa77ec7ea388e2abd",
+  "data_blob_sha": "d9e6b38b2f82f752f45580b64417a050e1437218",
+  "individuals": 35,
+  "active_pr": 30,
+  "inactive": 8,
+  "roles": 33,
+  "coverage": 47,
+  "assessments": 63,
+  "food_classifications": 19,
+  "source_measurements": 219
+}

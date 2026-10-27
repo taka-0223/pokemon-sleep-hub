@@ -1,0 +1,67 @@
+name: Live PWA smoke
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/live-pwa-smoke.yml"
+      - "data.js"
+      - "app.js"
+      - "index.html"
+      - "service-worker.js"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify published r36 HTML and data over HTTPS
+        run: |
+          set -eu
+          BASE="https://taka-0223.github.io/pokemon-sleep-hub"
+          curl -fsSL --retry 4 --retry-delay 3 "$BASE/?smoke=$GITHUB_SHA" > /tmp/pwa-index.html
+          curl -fsSL --retry 4 --retry-delay 3 "$BASE/data.js?smoke=$GITHUB_SHA" > /tmp/pwa-data.js
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          html=Path('/tmp/pwa-index.html').read_text()
+          data=Path('/tmp/pwa-data.js').read_text().strip()
+          assert '0.28-r36' in html and 'coverageList' in html
+          assert '<script src="./current-facts.js' not in html
+          assert '<script src="./current-decisions.js' not in html
+          assert data.startswith('window.APP_DATA=') and data.endswith(';')
+          d=json.loads(data[len('window.APP_DATA='):-1])
+          assert d['meta']['revision']=='2026-10-25-r36'
+          assert len(d['individuals'])==35 and len(d['roles'])==33
+          assert len(d['coverageMatrix'])==47 and len(d['speciesAssessments'])==63
+          print('LIVE HTTPS PASS: revision r36, 35 individuals, 33 roles, 47 coverage, 63 role tiers')
+          PY
+      - name: Verify rendered roster and roles with headless Chrome
+        run: |
+          set -eu
+          CHROME=$(command -v google-chrome || command -v chromium-browser || command -v chromium || true)
+          test -n "$CHROME"
+          ROOT="https://taka-0223.github.io/pokemon-sleep-hub"
+          "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=10000 --user-data-dir=/tmp/roster-chrome --dump-dom "$ROOT/?smoke=$GITHUB_SHA#roster" > /tmp/pwa-roster.html 2>/tmp/roster-chrome.err
+          "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=10000 --user-data-dir=/tmp/roles-chrome --dump-dom "$ROOT/?smoke=$GITHUB_SHA#roles" > /tmp/pwa-roles.html 2>/tmp/roles-chrome.err
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Counter(HTMLParser):
+            def __init__(self):super().__init__();self.roster=0;self.roles=0;self.coverage=0
+            def handle_starttag(self,tag,attrs):
+              cls=set(dict(attrs).get('class','').split())
+              if tag=='article' and {'dense-row','roster-card'}<=cls:self.roster+=1
+              if tag=='article' and 'role-assignment' in cls:self.roles+=1
+              if tag=='article' and 'coverage-r36' not in cls and False:self.coverage+=1
+          roster=Path('/tmp/pwa-roster.html').read_text()
+          rolehtml=Path('/tmp/pwa-roles.html').read_text()
+          a,b=Counter(),Counter();a.feed(roster);b.feed(rolehtml)
+          assert a.roster==35, f'Roster visual DOM count {a.roster} != 35'
+          assert b.roles==33, f'Role visual DOM count {b.roles} != 33'
+          assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml, 'Phase6 provisional UI missing'
+          assert 'IND-0041' in rolehtml, 'Corn backup IND-0041 not rendered'
+          assert 'CURRENT 2026-10-25-r36' in roster
+          print(f'RENDER PASS: roster {a.roster}, roles {b.roles}, Phase6 provisional labels, corn backup')
+          PY

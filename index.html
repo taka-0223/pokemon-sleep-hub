@@ -7,16 +7,16 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f6ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2530" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="./manifest.webmanifest?v=0.27.1-refresh">
-<link rel="stylesheet" href="./style.css?v=0.27.1-refresh">
-<link rel="stylesheet" href="./data-gate.css?v=0.27.1-refresh">
+<link rel="manifest" href="./manifest.webmanifest?v=0.28-r36">
+<link rel="stylesheet" href="./style.css?v=0.28-r36">
+<link rel="stylesheet" href="./data-gate.css?v=0.28-r36">
 <style>
 .facts-status{margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px;line-height:1.7}
 .facts-status[data-status="current"]{color:var(--text)}
 .facts-status[data-status="fallback"]{border-style:dashed}
 .detail-provenance{margin:8px 0 0;font-size:11px;line-height:1.65;opacity:.85}
 @media(max-width:600px){.facts-status{font-size:11px}}
-</style>
+.tier-provisional{border-bottom:1px dashed currentColor}.r36-decision-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.r36-decision-grid>div{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px}.r36-decision-grid dt{font-size:11px;color:var(--muted);margin-bottom:4px}.r36-decision-grid dd{margin:0;font-size:12px;line-height:1.65;overflow-wrap:anywhere}.coverage-r36{margin:14px 0 26px}.coverage-r36 h3{margin:0 0 10px;font-size:14px}.coverage-r36 h3 small{color:var(--muted);font-size:11px}.coverage-r36-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.coverage-r36-list article{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:9px 10px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.coverage-r36-list strong{font-size:12px;flex:1}.coverage-r36-list span{font-size:11px}.coverage-r36-list small{color:var(--muted);font-size:11px;width:100%}@media(max-width:380px){.r36-decision-grid,.coverage-r36-list{grid-template-columns:1fr}}</style>
 </head>
 <body>
 <header class="topbar">
@@ -38,7 +38,7 @@
   <div id="factsStatus" class="facts-status" role="status" aria-live="polite">手持ち・PRの更新状態を確認しています…</div>
   <section id="home" class="view active">
     <div class="page-title"><div><span class="eyebrow">ACCOUNT OVERVIEW</span><h2>現状</h2></div></div>
-    <p class="lede home-lede">手持ち・PR・役割の担当状態はCURRENTの記録です。直近の個体方針も一部反映しました。種族Tier・厳選候補・それ以外の育成優先順位は旧公開評価の参考情報です。</p>
+    <p class="lede home-lede">個体・種族Tier・全33役割・Coverage・料理Phase 6の判断をCURRENT r36へ統一しました。未測定値は推定で埋めません。</p>
 
     <div id="homePulse" class="home-pulse-grid"></div>
 
@@ -84,8 +84,8 @@
 
   <section id="roles" class="view">
     <div class="page-title"><div><span class="eyebrow">ROLE MAP</span><h2>役割一覧</h2></div></div>
-    <p class="lede">現行CURRENTの担当・バックアップと充足状態を確認できます。厳選候補のTierは旧公開の参考情報です。</p>
-    <div id="roleList" class="compact-list"></div>
+    <p class="lede">CURRENT r36の担当・バックアップ・料理需要と投資条件を確認できます。種族Tierは暫定と未評価を区別します。</p>
+    <div id="roleList" class="compact-list"></div><div class="section-head"><div><h2>食材・きのみ・スキルのCoverage</h2></div></div><p class="lede">料理のCore/Upgrade/Flex区分は暫定です。Coverage充足とアメ投入許可は別判断です。</p><div id="coverageList"></div>
   </section>
 
   <section id="plan" class="view">
@@ -204,22 +204,18 @@
   <section id="dataGateResult" class="gate-result" aria-live="polite"></section>
   <details class="gate-source"><summary>参照元・入力の扱い</summary><p id="dataGateSource"></p></details>
 </dialog>
-<script src="./data.js?v=0.27.1-refresh"></script>
-<script src="./current-facts.js?v=0.27.1-refresh"></script>
-<script src="./current-facts-merge.js?v=0.27.1-refresh"></script>
-<script src="./current-decisions.js?v=0.27.1-refresh"></script>
-<script src="./current-decisions-merge.js?v=0.27.1-refresh"></script>
-<script src="./updates.js?v=0.27.1-refresh"></script>
-<script src="./srp.js?v=0.27.1-refresh"></script>
-<script src="./data-gate.js?v=0.27.1-refresh"></script>
-<script src="./app.js?v=0.27.1-refresh"></script>
-<script src="./data-gate-ui.js?v=0.27.1-refresh"></script>
+<script src="./data.js?v=0.28-r36"></script>
+<script src="./updates.js?v=0.28-r36"></script>
+<script src="./srp.js?v=0.28-r36"></script>
+<script src="./data-gate.js?v=0.28-r36"></script>
+<script src="./app.js?v=0.28-r36"></script>
+<script src="./data-gate-ui.js?v=0.28-r36"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;
-      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.27.1-refresh", { updateViaCache: "none" });
+      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.28-r36", { updateViaCache: "none" });
       await reg.update();
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {

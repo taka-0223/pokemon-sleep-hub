@@ -2,23 +2,18 @@
 
 個人のポケモンスリープアカウントを「何を持っていて、何が強く、どの役割が埋まっていて、どこを厳選中か」で俯瞰する読み取り専用PWAです。
 
-## Architecture
+## Architecture — CURRENT r36
 
-```text
-スクリーンショット
-    ↓ Chat で情報抽出・厳選判定
-CURRENT_r35.xlsx (SSOT / 非公開)
-    ↓ scripts/build_data.py （非公開の中間生成）
-    ├─ scripts/build_current_facts.py → current-facts.js
-    └─ scripts/build_current_decisions.py → current-decisions.js
-旧公開 data.js (r23, Tierなど履歴用)
-    ↓ facts merge → recent decisions / assignments merge
-公開用 APP_DATA
-    ↓ GitHub Pages
-PWA
+CURRENT r36（非公開SSOT、`2026-10-25-r36`）から`data.js`を生成し、単一の現行評価revisionとして公開します。手持ちの事実・PR・個体方針・種族役割Tier・33 RoleSlot・47 Coverage・料理Phase 6の条件付き判断を統合します。
+
+生成手順：
+
+```bash
+python3 scripts/build_r36_snapshot.py /private/pokemon_sleep_decision_system_CURRENT_r36.xlsx data.js
+python3 scripts/check_r36_public.py --candidate data.js --manifest config/r36-public-manifest.json --facts current-facts.js
 ```
 
-種族の **SRP (Species Role Percentile)** はデプロイ時に `reimer0204/pokesle-simulator` の最新公開データを取得して生成します。個体PRとは別指標です。
+元のCURRENT Excelはパブリックリポジトリへコミットしません。r35は非公開履歴として保持。旧r23の評価値へフォールバックしません。r36では料理定性判断を正式採用しましたが、物理的な料理エナジー増分はMODEL_GAPとして未算出です。SRPは個体PRと別指標です。
 
 ## UI v0.8
 
@@ -29,14 +24,9 @@ PWA
 - 育成: 資源、イベント、育成中個体
 - 各画面は下部ナビまたは左右スワイプで移動。スワイプは指の移動量に追従して隣画面を引き込む
 
-## CURRENT → 公開用の限定同期
+## r36 public data
 
-```bash
-python3 scripts/build_current_facts.py /private/pokemon_sleep_decision_system_CURRENT_r35.xlsx current-facts.js
-python3 scripts/build_current_decisions.py /private/pokemon_sleep_decision_system_CURRENT_r35.xlsx current-decisions.js 2026-10-20
-```
-
-CURRENT.xlsxはPublic repoへコミットしません。2026-10-25時点で、手持ち35体・PR30体、全33役割の担当・状態と直近6体の個体方針をr35に同期。旧公開r23のSpecies Tier・厳選候補は引き続き参考表示です。`data.js`をr35の完全な導出ファイルで上書きすると履歴評価や測定が欠落するため、現在の限定同期とは別の審査対象です。
+本番は`data.js`単一の評価正本を使います。`current-facts.js`/`current-decisions.js`はr35の測定保全テストの参照用として残していますが、本番HTMLからは読み込みません。
 
 ## Deployment
 
@@ -49,5 +39,5 @@ mainへのpushでGitHub ActionsがJS/Pythonを検証し、SRP βを再生成し�
 - 判定は `data-gate.js` の純粋関数で、結果は READY / PROVISIONAL / VERIFY / HOLD / MODEL_GAP の5種類です。
 - 博士送りは情報が揃ってもアプリから許可・実行できません。料理モデル未整備もユーザーの在庫不足と区別します。
 - 入力値は画面内の一時情報で、`CURRENT.xlsx` や `data.js`、ブラウザ保存領域には書き込みません。
-- 方針の正本は最新CURRENTの `C_DataPolicy` / `C_DecisionGate`。公開個体の固定事実とPRはr35、直近個体方針6体と33役割の担当状態もr35、古い種族Tier・候補評価はr23の参考情報です。
+- 方針の正本は最新CURRENTの `C_DataPolicy` / `C_DecisionGate`。個体・PR・判断・種族Tier・RoleSlot・料理定性評価の公開revisionはすべてr36です。実数値が未測定のときは未算出として表示します。
 - テスト: `node --test tests/data-gate.test.cjs`。CIはPRとmain pushでゲートを検証します。

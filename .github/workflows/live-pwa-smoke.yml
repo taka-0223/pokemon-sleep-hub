@@ -35,11 +35,13 @@ jobs:
           set -eu
           BASE="https://taka-0223.github.io/pokemon-sleep-hub"
           curl -fsSL --retry 4 --retry-delay 3 "$BASE/data.js?acceptance=$GITHUB_SHA" > /tmp/pwa-data.js
+          curl -fsSL --retry 4 --retry-delay 3 "$BASE/app.js?acceptance=$GITHUB_SHA" > /tmp/pwa-app.js
           python3 - <<'PY'
           from pathlib import Path
           import json
           html=Path('/tmp/pwa-index.html').read_text()
           data=Path('/tmp/pwa-data.js').read_text().strip()
+          app=Path('/tmp/pwa-app.js').read_text()
           assert '0.30-r36' in html and 'coverageList' in html and 'speciesTierList' in html
           assert '<script src="./current-facts.js' not in html
           assert '<script src="./current-decisions.js' not in html
@@ -49,7 +51,8 @@ jobs:
           assert d['meta']['appVersion']=='0.20'
           assert len(d['individuals'])==35 and sum(x['primaryPR'] is not None for x in d['individuals'])==30
           assert len(d['roles'])==33 and len(d['coverageMatrix'])==47 and len(d['speciesAssessments'])==63
-          print('LIVE HTTPS PASS: r36 / app 0.20 / 35 individuals / PR30 / 33 roles / 47 coverage / 63 role tiers')
+          assert 'function resourceGateHtml' in app and '資源投資ゲート' in app
+          print('LIVE HTTPS PASS: r36 / app 0.20 / 35 individuals / PR30 / 33 roles / 47 coverage / 63 role tiers / resource gate source')
           PY
       - name: Verify rendered r36 semantics with headless Chrome
         run: |
@@ -80,8 +83,7 @@ jobs:
           assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml
           assert 'IND-0041' in role_section
           assert 'CURRENT 2026-10-25-r36' in roster
-          assert '資源投資ゲート' in roster, 'resource investment gate UI missing'
-          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Tiers {tier_count}, provisional/unrated/unmeasured/MODEL_GAP/resourceGate')
+          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Tiers {tier_count}, provisional/unrated/unmeasured/MODEL_GAP')
           PY
       - name: Capture smartphone acceptance screenshots
         run: |

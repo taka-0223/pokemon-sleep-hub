@@ -80,7 +80,8 @@ jobs:
           assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml
           assert 'IND-0041' in role_section
           assert 'CURRENT 2026-10-25-r36' in roster
-          assert '資源投資ゲート' in roster, 'resource investment gate UI missing'\n          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Tiers {tier_count}, provisional/unrated/unmeasured/MODEL_GAP/resourceGate')
+          assert '資源投資ゲート' in roster, 'resource investment gate UI missing'
+          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Tiers {tier_count}, provisional/unrated/unmeasured/MODEL_GAP/resourceGate')
           PY
       - name: Capture smartphone acceptance screenshots
         run: |

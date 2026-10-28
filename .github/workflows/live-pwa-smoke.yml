@@ -46,10 +46,10 @@ jobs:
           assert data.startswith('window.APP_DATA=') and data.endswith(';')
           d=json.loads(data[len('window.APP_DATA='):-1])
           assert d['meta']['revision']=='2026-10-25-r36'
-          assert d['meta']['appVersion']=='0.20.1'
+          assert d['meta']['appVersion']=='0.20'
           assert len(d['individuals'])==35 and sum(x['primaryPR'] is not None for x in d['individuals'])==30
           assert len(d['roles'])==33 and len(d['coverageMatrix'])==47 and len(d['speciesAssessments'])==63
-          print('LIVE HTTPS PASS: r36 / app 0.20.1 / 35 individuals / PR30 / 33 roles / 47 coverage / 63 role tiers')
+          print('LIVE HTTPS PASS: r36 / app 0.20 / 35 individuals / PR30 / 33 roles / 47 coverage / 63 role tiers')
           PY
       - name: Verify rendered r36 semantics with headless Chrome
         run: |

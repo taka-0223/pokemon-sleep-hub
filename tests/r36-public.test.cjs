@@ -63,3 +63,14 @@ test('acceptance UI distinguishes individual unrated, PR unmeasured, provisional
  assert.equal(unmeasured.length,5);
  assert.equal(unmeasured.filter(x=>x.quality==null).length,3);
 });
+
+test('all individuals expose resource investment gates and detail renderer includes them',()=>{
+ const app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8');
+ assert.equal(D.individuals.filter(x=>x.resourceGate&&Object.keys(x.resourceGate).length).length,35);
+ assert.match(app,/function resourceGateHtml\(/);
+ assert.match(app,/資源投資ゲート/);
+ for(const p of D.individuals){
+   assert.ok(p.resourceGate);
+   assert.ok(Object.prototype.hasOwnProperty.call(p.resourceGate,'universalCandy'));
+ }
+});

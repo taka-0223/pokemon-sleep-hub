@@ -23,7 +23,7 @@ jobs:
           BASE="https://taka-0223.github.io/pokemon-sleep-hub"
           ok=0
           for i in $(seq 1 30); do
-            if curl -fsSL --retry 2 --retry-delay 2 "$BASE/?acceptance=$GITHUB_SHA" > /tmp/pwa-index.html               && grep -q '0.29-r36' /tmp/pwa-index.html; then
+            if curl -fsSL --retry 2 --retry-delay 2 "$BASE/?acceptance=$GITHUB_SHA" > /tmp/pwa-index.html               && grep -q '0.30-r36' /tmp/pwa-index.html; then
               ok=1
               break
             fi
@@ -40,7 +40,7 @@ jobs:
           import json
           html=Path('/tmp/pwa-index.html').read_text()
           data=Path('/tmp/pwa-data.js').read_text().strip()
-          assert '0.29-r36' in html and 'coverageList' in html and 'speciesTierList' in html
+          assert '0.30-r36' in html and 'coverageList' in html and 'speciesTierList' in html
           assert '<script src="./current-facts.js' not in html
           assert '<script src="./current-decisions.js' not in html
           assert data.startswith('window.APP_DATA=') and data.endswith(';')
@@ -80,7 +80,7 @@ jobs:
           assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml
           assert 'IND-0041' in role_section
           assert 'CURRENT 2026-10-25-r36' in roster
-          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Tiers {tier_count}, provisional/unrated/unmeasured/MODEL_GAP')
+          assert '資源投資ゲート' in roster, 'resource investment gate UI missing'\n          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Tiers {tier_count}, provisional/unrated/unmeasured/MODEL_GAP/resourceGate')
           PY
       - name: Capture smartphone acceptance screenshots
         run: |

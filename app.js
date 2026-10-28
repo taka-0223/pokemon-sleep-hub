@@ -419,6 +419,17 @@ function renderPlan(){
   $("#planList").innerHTML=list.map(denseRow).join("");
   bindRows();
 }
+function resourceGateHtml(p){
+ const g=p.resourceGate||{};
+ const rows=[
+  ["専用アメ",g.dedicatedCandy],
+  ["万能アメ",g.universalCandy],
+  ["金種上限",g.mainSeedCap],
+  ["銀種",g.silverSeedPolicy]
+ ].filter(x=>x[1]!==undefined&&x[1]!==null&&x[1]!=="");
+ if(!rows.length)return "";
+ return '<details class="resource-gate-disclosure"><summary>資源投資ゲート</summary><dl>'+rows.map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd></div>').join("")+'</dl></details>';
+}
 function detail(p){const decisionLabel=p.currentDecisionStatus==="provisional"?"CURRENT r36・暫定":"CURRENT r36・正式判断";
  const provenance="方針：CURRENT "+esc(D.meta.revision)+"（審査日 "+esc(p.currentDecisionDate||"未登録")+"）。種族Tierは役割別。PR未測定は0点を意味しません。";
  const srp=srpFor(p),measures=[...(p.measurements||[])].sort((a,b)=>(a.lv??999)-(b.lv??999)||String(a.metric).localeCompare(String(b.metric),"ja"));
@@ -433,7 +444,7 @@ function detail(p){const decisionLabel=p.currentDecisionStatus==="provisional"?"
  '<div class="score-card"><div class="score-label">SRP <span class="info-dot" tabindex="0" data-tip="同じ役割の種族を固定条件で比較した順位。個体PRとは別指標。">i</span></div><strong>'+esc(srpValue)+'</strong><small>役割内順位</small><div class="score-foot">'+esc(srpFoot)+'</div></div></div>'+
  '<section class="detail-section"><div class="detail-section-head"><span>食材</span></div>'+foodGrid(p)+'</section><section class="detail-section">'+natureCard(p)+'</section><section class="detail-section subskill-section"><div class="detail-section-head"><span>サブスキル</span></div>'+subSkillGrid(p)+'</section>'+
  '<section class="decision-card"><div class="decision-top"><div><small>この個体の方針（'+decisionLabel+'）</small><strong>'+esc(p.disposition||"未設定")+'</strong></div><span>'+esc(p.refinement||"未設定")+'</span></div><p>'+esc(p.rationale||p.modelReviewReason)+'</p>'+
- '<dl class="r36-decision-grid"><div><dt>役割適性</dt><dd>'+esc(p.roleFit||"未評価")+'</dd></div><div><dt>料理貢献</dt><dd>'+esc(p.cookingContribution||"未算出")+'</dd></div><div><dt>投資の検討順</dt><dd>'+esc(p.investmentWindow||"未設定")+'</dd></div><div><dt>次の確認・行動</dt><dd>'+esc(p.resourceNextStep||"未設定")+'</dd></div></dl></section>'+
+ '<dl class="r36-decision-grid"><div><dt>役割適性</dt><dd>'+esc(p.roleFit||"未評価")+'</dd></div><div><dt>料理貢献</dt><dd>'+esc(p.cookingContribution||"未算出")+'</dd></div><div><dt>投資の検討順</dt><dd>'+esc(p.investmentWindow||"未設定")+'</dd></div><div><dt>次の確認・行動</dt><dd>'+esc(p.resourceNextStep||"未設定")+'</dd></div></dl>'+resourceGateHtml(p)+'</section>'+
  '<details class="history-disclosure"><summary>PR履歴 <span>'+measures.length+'件</span></summary><table class="measure-table"><thead><tr><th>Lv</th><th>指標</th><th>PR</th><th>換算</th></tr></thead><tbody>'+rows+'</tbody></table></details>';}
 function openIndividual(id){
   if(suppressClick)return;

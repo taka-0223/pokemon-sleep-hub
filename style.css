@@ -2596,3 +2596,58 @@ dialog::backdrop{background:rgba(34,43,51,.38);backdrop-filter:blur(3px)}
 @media(prefers-reduced-motion:reduce){
   .species-tier-audit>summary::before{transition:none}
 }
+
+
+/* r36 acceptance: individual resource investment gate */
+.resource-gate-disclosure{
+  margin-top:10px;
+  padding-top:8px;
+  border-top:1px solid var(--stroke-soft)
+}
+.resource-gate-disclosure summary{
+  color:var(--ink-soft);
+  font-size:9px;
+  font-weight:900;
+  cursor:pointer;
+  list-style:none
+}
+.resource-gate-disclosure summary::-webkit-details-marker{display:none}
+.resource-gate-disclosure summary::before{
+  content:"›";
+  display:inline-block;
+  margin-right:5px;
+  color:var(--blue);
+  transition:transform .15s ease
+}
+.resource-gate-disclosure[open] summary::before{transform:rotate(90deg)}
+.resource-gate-disclosure dl{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;
+  margin:8px 0 0
+}
+.resource-gate-disclosure dl>div{
+  min-width:0;
+  padding:8px 9px;
+  border:1px solid var(--stroke-soft);
+  border-radius:11px;
+  background:var(--surface-2)
+}
+.resource-gate-disclosure dt{
+  color:var(--ink-muted);
+  font-size:7px;
+  font-weight:850
+}
+.resource-gate-disclosure dd{
+  margin:3px 0 0;
+  color:var(--ink);
+  font-size:9px;
+  line-height:1.4;
+  overflow-wrap:anywhere
+}
+@media(max-width:390px){
+  .resource-gate-disclosure dl{grid-template-columns:1fr}
+}
+@media(prefers-color-scheme:dark){
+  .resource-gate-disclosure dl>div{background:rgba(255,255,255,.025)}
+}

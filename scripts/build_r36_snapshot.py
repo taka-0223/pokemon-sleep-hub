@@ -131,7 +131,7 @@ def build(workbook: Path, output: Path) -> dict:
         "roleTierCoverage": s.get("role_tier_coverage"),
         "modelReviewDate": s.get("model_review_date")} for s in species]
     meta = data["meta"]
-    meta.update(revision=revision, schemaVersion="1.2", generatedAt=revision[:10], appVersion="0.20.1",
+    meta.update(revision=revision, schemaVersion="1.2", generatedAt=revision[:10], appVersion="0.20",
                 modelVersion="r36", source=workbook.name,
                 sourceSha256=hashlib.sha256(workbook.read_bytes()).hexdigest(),
                 sourceIndividualCount=len(inds), sourceMeasurementCount=len(dict_rows(wb["L_Measurements"], "measurement_id")),

@@ -1,4 +1,4 @@
-const CACHE_NAME="pokemon-sleep-hub-v0.28-r36";
+const CACHE_NAME="pokemon-sleep-hub-v0.29-r36";
 const CORE=["./","./index.html","./style.css","./app.js","./data-gate.js","./data-gate-ui.js","./data-gate.css","./data.js","./srp.js","./updates.js","./manifest.webmanifest","./icons/app-icon.svg"];
 const CORE_PATHS=new Set(CORE.map(p=>new URL(p,self.registration.scope).pathname));
 

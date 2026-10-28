@@ -7,6 +7,7 @@ on:
       - "data.js"
       - "app.js"
       - "index.html"
+      - "style.css"
       - "service-worker.js"
   workflow_dispatch:
 permissions:
@@ -14,51 +15,92 @@ permissions:
 jobs:
   live-ui:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 7
     steps:
+      - name: Wait for published r36 acceptance build
+        run: |
+          set -eu
+          BASE="https://taka-0223.github.io/pokemon-sleep-hub"
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsSL --retry 2 --retry-delay 2 "$BASE/?acceptance=$GITHUB_SHA" > /tmp/pwa-index.html               && grep -q '0.29-r36' /tmp/pwa-index.html; then
+              ok=1
+              break
+            fi
+            sleep 3
+          done
+          test "$ok" = 1
       - name: Verify published r36 HTML and data over HTTPS
         run: |
           set -eu
           BASE="https://taka-0223.github.io/pokemon-sleep-hub"
-          curl -fsSL --retry 4 --retry-delay 3 "$BASE/?smoke=$GITHUB_SHA" > /tmp/pwa-index.html
-          curl -fsSL --retry 4 --retry-delay 3 "$BASE/data.js?smoke=$GITHUB_SHA" > /tmp/pwa-data.js
+          curl -fsSL --retry 4 --retry-delay 3 "$BASE/data.js?acceptance=$GITHUB_SHA" > /tmp/pwa-data.js
           python3 - <<'PY'
           from pathlib import Path
           import json
           html=Path('/tmp/pwa-index.html').read_text()
           data=Path('/tmp/pwa-data.js').read_text().strip()
-          assert '0.28-r36' in html and 'coverageList' in html
+          assert '0.29-r36' in html and 'coverageList' in html and 'speciesTierList' in html
           assert '<script src="./current-facts.js' not in html
           assert '<script src="./current-decisions.js' not in html
           assert data.startswith('window.APP_DATA=') and data.endswith(';')
           d=json.loads(data[len('window.APP_DATA='):-1])
           assert d['meta']['revision']=='2026-10-25-r36'
-          assert len(d['individuals'])==35 and len(d['roles'])==33
-          assert len(d['coverageMatrix'])==47 and len(d['speciesAssessments'])==63
-          print('LIVE HTTPS PASS: revision r36, 35 individuals, 33 roles, 47 coverage, 63 role tiers')
+          assert d['meta']['appVersion']=='0.20'
+          assert len(d['individuals'])==35 and sum(x['primaryPR'] is not None for x in d['individuals'])==30
+          assert len(d['roles'])==33 and len(d['coverageMatrix'])==47 and len(d['speciesAssessments'])==63
+          print('LIVE HTTPS PASS: r36 / app 0.20 / 35 individuals / PR30 / 33 roles / 47 coverage / 63 role tiers')
           PY
-      - name: Verify rendered roster and roles with headless Chrome
+      - name: Verify rendered r36 semantics with headless Chrome
         run: |
           set -eu
           CHROME=$(command -v google-chrome || command -v chromium-browser || command -v chromium || true)
           test -n "$CHROME"
           ROOT="https://taka-0223.github.io/pokemon-sleep-hub"
-          "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=10000 --user-data-dir=/tmp/roster-chrome --dump-dom "$ROOT/?smoke=$GITHUB_SHA#roster" > /tmp/pwa-roster.html 2>/tmp/roster-chrome.err
-          "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=10000 --user-data-dir=/tmp/roles-chrome --dump-dom "$ROOT/?smoke=$GITHUB_SHA#roles" > /tmp/pwa-roles.html 2>/tmp/roles-chrome.err
+          "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=10000 --user-data-dir=/tmp/roster-chrome --dump-dom "$ROOT/?acceptance=$GITHUB_SHA#roster" > /tmp/pwa-roster.html 2>/tmp/roster-chrome.err
+          "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking --virtual-time-budget=10000 --user-data-dir=/tmp/roles-chrome --dump-dom "$ROOT/?acceptance=$GITHUB_SHA#roles" > /tmp/pwa-roles.html 2>/tmp/roles-chrome.err
           python3 - <<'PY'
           from pathlib import Path
           roster=Path('/tmp/pwa-roster.html').read_text()
           rolehtml=Path('/tmp/pwa-roles.html').read_text()
-          assert 'id="rosterList"' in roster and 'id="refine"' in roster, 'Roster area not loaded'
+          assert 'id="rosterList"' in roster and 'id="refine"' in roster
           roster_section=roster.split('id="rosterList"',1)[1].split('id="refine"',1)[0]
           roster_count=roster_section.count('class="dense-row roster-card')
-          assert 'id="roleList"' in rolehtml and 'id="coverageList"' in rolehtml, 'Roles area not loaded'
+          assert roster_count==35, f'Roster DOM count {roster_count} != 35'
+          assert roster_section.count('未測定')>=5, 'PR unmeasured labels missing'
+          assert roster_section.count('未評価')>=3, 'individual unrated labels missing'
+          assert 'id="roleList"' in rolehtml and 'id="coverageList"' in rolehtml
           role_section=rolehtml.split('id="roleList"',1)[1].split('id="coverageList"',1)[0]
           role_count=role_section.count('class="role-assignment ')
-          assert roster_count==35, f'Roster DOM count {roster_count} != 35'
+          tier_count=rolehtml.count('class="species-tier-row"')
           assert role_count==33, f'Role DOM count {role_count} != 33'
-          assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml, 'Phase6 provisional labels missing'
-          assert 'IND-0041' in role_section, 'Corn backup IND-0041 not rendered'
+          assert tier_count==63, f'Species-role Tier DOM count {tier_count} != 63'
+          assert '暫定S' in rolehtml, 'provisional S label missing'
+          assert 'MODEL_GAP' in role_section, 'MODEL_GAP badge missing'
+          assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml
+          assert 'IND-0041' in role_section
           assert 'CURRENT 2026-10-25-r36' in roster
-          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Phase6 provisional labels, corn backup')
+          print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Tiers {tier_count}, provisional/unrated/unmeasured/MODEL_GAP')
           PY
+      - name: Capture smartphone acceptance screenshots
+        run: |
+          set -eu
+          CHROME=$(command -v google-chrome || command -v chromium-browser || command -v chromium)
+          ROOT="https://taka-0223.github.io/pokemon-sleep-hub"
+          mkdir -p /tmp/mobile
+          for view in home roster refine roles plan; do
+            "$CHROME" --headless=new --disable-gpu --no-sandbox --disable-dev-shm-usage --disable-background-networking               --window-size=412,915 --force-device-scale-factor=1 --virtual-time-budget=10000               --user-data-dir="/tmp/mobile-$view" --screenshot="/tmp/mobile/$view.png"               "$ROOT/?acceptance=$GITHUB_SHA#$view" >/tmp/mobile-$view.out 2>/tmp/mobile-$view.err
+            test -s "/tmp/mobile/$view.png"
+          done
+          python3 - <<'PY'
+          from pathlib import Path
+          for p in Path('/tmp/mobile').glob('*.png'):
+              assert p.stat().st_size > 10000, (p.name,p.stat().st_size)
+              print('MOBILE SCREEN PASS',p.name,p.stat().st_size)
+          PY
+      - name: Upload smartphone acceptance screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: r36-mobile-acceptance
+          retention-days: 7
+          path: /tmp/mobile/*.png

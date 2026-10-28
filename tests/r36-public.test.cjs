@@ -46,3 +46,20 @@ test('live app has no legacy evaluation sidecars',()=>{
  assert.ok(!html.includes('<script src="./current-decisions.js'));
  assert.ok(html.includes('id="coverageList"'));
 });
+
+test('acceptance UI distinguishes individual unrated, PR unmeasured, provisional Tier and MODEL_GAP',()=>{
+ const app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8');
+ const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+ assert.match(app,/q\|\|"未評価"/);
+ assert.match(app,/PR未測定≠0/);
+ assert.match(app,/function renderSpeciesAssessments\(/);
+ assert.match(app,/model-gap-chip/);
+ assert.ok(html.includes('id="speciesTierList"'));
+ assert.ok(html.includes('id="speciesTierCount"'));
+ assert.equal(D.speciesAssessments.filter(x=>x.status==='provisional').length,11);
+ const oil=D.roles.find(x=>x.id==='ROLE-018');
+ assert.match(oil.investmentGate,/MODEL_GAP/);
+ const unmeasured=D.individuals.filter(x=>x.primaryPR==null);
+ assert.equal(unmeasured.length,5);
+ assert.equal(unmeasured.filter(x=>x.quality==null).length,3);
+});

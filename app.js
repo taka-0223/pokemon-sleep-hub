@@ -62,6 +62,7 @@ let suppressClick=false;
 const foodTarget={milk_specialist:"モーモーミルク",cacao_specialist:"リラックスカカオ",apple:"とくせんリンゴ",potato:"ほっこりポテト",ginger:"あったかジンジャー",honey:"あまいミツ",pumpkin:"ずっしりカボチャ",oil_specialist:"ピュアなオイル",corn:"ワカクサコーン",mushroom:"あじわいキノコ",meat:"マメミート",egg_specialist:"とくせんエッグ",leek_specialist:"ふといながねぎ",tomato_specialist:"あんみんトマト",herb_specialist:"げきからハーブ",soybean_specialist:"ワカクサ大豆",coffee_specialist:"めざましコーヒー",avocado_specialist:"つやつやアボカド"};
 const individualById=Object.fromEntries(D.individuals.map(p=>[p.id,p]));
 const roleById=Object.fromEntries(D.roles.map(r=>[r.id,r]));
+const speciesNameByKey=Object.fromEntries((D.speciesMaster||[]).map(p=>[p.key,p.name]));
 const statusKind=s=>["充足","特殊充足"].includes(s)?"good":["育成待ち","充足予定","暫定充足","条件付き充足","候補運用","副産物のみ","将来解禁","非専任のみ","需要未確認"].includes(s)?"mid":["不足","未所持"].includes(s)?"bad":"unknown";
 const statusClass=s=>"state-"+statusKind(s);
 const roleClass=t=>t==="食材"?"role-food":t==="きのみ"?"role-berry":t==="スキル"?"role-skill":"role-other";
@@ -92,7 +93,7 @@ function srpText(p){
 }
 const qualityClass={"S":"q-s","A+":"q-ap","A":"q-a","B":"q-b","C":"q-c","特殊":"q-special"};
 function tierClass(q){return qualityClass[q]||"q-other";}
-function qualityBadge(q){return '<span class="quality '+tierClass(q)+'">'+esc(q||"未測定")+'</span>';}
+function qualityBadge(q){return '<span class="quality '+tierClass(q)+'">'+esc(q||"未評価")+'</span>';}
 function tierText(q,status){const label=!q?"Tier未評価":status==="provisional"?"暫定"+q:q;return '<span class="tier-text '+tierClass(q)+(status==="provisional"?" tier-provisional":"")+'">'+esc(label)+'</span>';}
 function displayName(p){
   const level=String(p.level??"");
@@ -238,13 +239,31 @@ function roleAssignmentCard(r){
   const assignment=people.length
     ? '<div class="role-people'+(people.length===1?' is-single':'')+'">'+people.join("")+'</div>'
     : '<div class="role-empty-state"><small>現在の担当</small><strong>担当なし</strong></div>';
+  const hasModelGap=/MODEL_GAP/.test(String(r.investmentGate||"")+" "+String(r.cookingDemand||"")+" "+String(r.note||""));
   const note='<details class="role-note-disclosure"><summary>判断根拠・料理需要・投資条件</summary>'+
     '<p>'+esc(r.note||"")+'</p><p><b>料理需要：</b>'+esc(r.cookingDemand||"対象外")+'</p><p><b>投資条件：</b>'+esc(r.investmentGate||"未設定")+'</p></details>';
   return '<article class="role-assignment '+roleClass(r.type)+'">'+
     '<div class="role-assignment-head"><div class="compact-name">'+esc(r.name)+'</div>'+
-      '<span class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</span></div>'+
+      '<div class="role-head-badges">'+(hasModelGap?'<span class="model-gap-chip">MODEL_GAP</span>':'')+
+      '<span class="compact-state '+statusClass(r.need)+'">'+esc(r.need)+'</span></div></div>'+
     assignment+note+
   '</article>';
+}
+function confidenceLabel(x){return x==="high"?"高":x==="medium"?"中":x==="low"?"低":"—";}
+function renderSpeciesAssessments(){
+  const root=$("#speciesTierList"),count=$("#speciesTierCount");
+  if(!root)return;
+  const list=[...(D.speciesAssessments||[])].sort((a,b)=>
+    String(a.roleName||"").localeCompare(String(b.roleName||""),"ja")||
+    String(speciesNameByKey[a.speciesKey]||a.speciesKey||"").localeCompare(String(speciesNameByKey[b.speciesKey]||b.speciesKey||""),"ja")
+  );
+  if(count)count.textContent=list.length+"件";
+  root.innerHTML=list.map(a=>
+    '<article class="species-tier-row">'+
+      '<div class="species-tier-name"><strong>'+esc(speciesNameByKey[a.speciesKey]||a.speciesKey)+'</strong><span>'+esc(a.roleName||a.roleKey)+'</span></div>'+
+      '<div class="species-tier-meta">'+tierText(a.grade,a.status)+'<small>信頼 '+esc(confidenceLabel(a.confidence))+'</small></div>'+
+    '</article>'
+  ).join("");
 }
 function compactRole(r,refine){
   const inc=individualById[r.incumbent]&&individualById[r.incumbent].name;
@@ -379,6 +398,7 @@ function renderRoles(){
    const entries=(D.coverageMatrix||[]).filter(x=>x.domain===type);if(!entries.length)return "";
    return '<section class="coverage-r36"><h3>'+esc(type)+' Coverage <small>'+entries.length+'項目</small></h3><div class="coverage-r36-list">'+entries.map(c=>'<article><strong>'+esc(c.name)+'</strong><span>'+esc(c.status)+'</span>'+
     (c.phase6FoodClass?'<small>料理 '+esc(c.phase6FoodClass)+'（暫定）</small>':'')+'</article>').join("")+'</div></section>';}).join("");}
+  renderSpeciesAssessments();
   bindRows();
 }
 function eventState(e){

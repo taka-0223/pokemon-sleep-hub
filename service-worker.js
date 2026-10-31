@@ -1,15 +1,17 @@
-const CACHE_NAME="pokemon-sleep-hub-v0.30-r36";
-const CORE=["./","./index.html","./style.css","./app.js","./data-gate.js","./data-gate-ui.js","./data-gate.css","./data.js","./srp.js","./updates.js","./manifest.webmanifest","./icons/app-icon.svg"];
+const CACHE_PREFIX="pokemon-sleep-hub-";
+const CACHE_NAME="pokemon-sleep-hub-v0.21-r37";
+const CORE=["./","./index.html","./style.css","./app.js","./data-gate.js","./data-gate-ui.js","./data-gate.css","./data.js","./seed-data.js","./seed-rules.js","./seed-model.js","./seed-ui.js","./seed-ui.css","./srp.js","./updates.js","./manifest.webmanifest","./icons/app-icon.svg"];
 const CORE_PATHS=new Set(CORE.map(p=>new URL(p,self.registration.scope).pathname));
+const ENTRY_PATHS=new Set(["./","./index.html"].map(p=>new URL(p,self.registration.scope).pathname));
 
 self.addEventListener("install",e=>{
-  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(CORE)));
-  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()));
 });
 
 self.addEventListener("activate",e=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));
-  self.clients.claim();
+  e.waitUntil(caches.keys()
+    .then(keys=>Promise.all(keys.filter(k=>k.startsWith(CACHE_PREFIX)&&k!==CACHE_NAME).map(k=>caches.delete(k))))
+    .then(()=>self.clients.claim()));
 });
 
 self.addEventListener("fetch",e=>{
@@ -25,7 +27,14 @@ self.addEventListener("fetch",e=>{
 
   if(req.mode==="navigate"){
     const forceFresh=url.searchParams.has("_refresh")||url.searchParams.has("_reload");
-    e.respondWith(fetch(req,forceFresh?{cache:"no-store"}:undefined).catch(()=>caches.match("./index.html")));
+    e.respondWith(fetch(req,forceFresh?{cache:"no-store"}:undefined).then(async response=>{
+      if(response.ok&&ENTRY_PATHS.has(url.pathname)){
+        // Older clients clear app caches before reloading. Rebuild the offline
+        // entry even when this worker is unchanged and no install event runs.
+        try{const cache=await caches.open(CACHE_NAME);await cache.put("./index.html",response.clone());}catch(_){}
+      }
+      return response;
+    }).catch(()=>caches.match("./index.html")));
     return;
   }
 

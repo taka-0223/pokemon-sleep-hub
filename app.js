@@ -381,12 +381,12 @@ function renderRoster(){
   bindRows();
 }
 function renderRefine(){let list=refiningRoles();const showDone=!!appSettings.showCompletedRefine;if(!showDone)list=list.filter(r=>!refineState(r).done);
- const lead=$("#refineLead");if(lead)lead.textContent=showDone?"現行r36の厳選対象を上位に表示。種族Tierは役割別評価で、暫定と未評価を区別します。":"厳選中・条件付きの役割を表示。料理需要と資源投資の許可は別判断です。";
+ const lead=$("#refineLead");if(lead)lead.textContent=showDone?"現行CURRENTの厳選対象を上位に表示。種族Tierは役割別評価で、暫定と未評価を区別します。":"厳選中・条件付きの役割を表示。料理需要と資源投資の許可は別判断です。";
  $("#refineList").innerHTML=list.length?list.map(r=>compactRole(r,true)).join(""):'<div class="lede">表示対象の役割がありません。</div>';bindRows();}
 function renderRoles(){
   const need={不足:0,未所持:0,育成待ち:1,充足予定:2,暫定充足:3,候補運用:3,条件付き充足:4,充足:5,特殊充足:5};
   const order=["食材","きのみ","スキル"];
-  const roleDataLabel="CURRENT r36：役割担当・種族候補";
+  const roleDataLabel="CURRENT "+esc(D.meta.revision)+"：役割担当・種族候補";
   $("#roleList").innerHTML=order.map(type=>{
     const list=D.roles.filter(r=>r.type===type).sort((a,b)=>(need[a.need]??9)-(need[b.need]??9)||String(a.name||"").localeCompare(String(b.name||""),"ja"));
     if(!list.length)return "";
@@ -412,8 +412,9 @@ function fmtDate(iso){
   return (d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0");
 }
 function renderPlan(){
-  const keys=[["dream_shard","ゆめのかけら"],["main_skill_seed","メインスキルのたね"],["mareep_candy","メリープ系"],["fuecoco_candy","ホゲータ系"],["squirtle_candy","ゼニガメ系"]];
+  const keys=[["dream_shard","ゆめのかけら"],["mareep_candy","メリープ系"],["fuecoco_candy","ホゲータ系"],["squirtle_candy","ゼニガメ系"]];
   $("#resourceBar").innerHTML=keys.filter(x=>D.resources[x[0]]).map(x=>'<div class="resource"><small>'+x[1]+'</small><b>'+esc(D.resources[x[0]].value!=null?D.resources[x[0]].value:D.resources[x[0]].text)+'</b></div>').join("");
+  if(window.SeedInvestmentUI)window.SeedInvestmentUI.renderPlan();
   $("#eventList").innerHTML=D.events.map(e=>{const st=eventState(e);return '<article class="event-card '+st[0]+'"><div class="event-state">'+st[1]+'</div><div class="event-name">'+esc(e.name)+'</div><div class="event-dates">'+fmtDate(e.start)+' → '+fmtDate(e.end)+'</div><div class="event-summary">'+esc(e.summary)+'</div><a class="event-link" href="'+esc(e.url)+'" target="_blank" rel="noopener">公式を見る ↗</a></article>';}).join("");
   const list=[...D.individuals].filter(p=>p.disposition==="育成").sort((a,b)=>(a.priority??99)-(b.priority??99));
   $("#planList").innerHTML=list.map(denseRow).join("");
@@ -424,13 +425,13 @@ function resourceGateHtml(p){
  const rows=[
   ["専用アメ",g.dedicatedCandy],
   ["万能アメ",g.universalCandy],
-  ["金種上限",g.mainSeedCap],
+  ["金種の検討上限",g.mainSeedCap],
   ["銀種",g.silverSeedPolicy]
  ].filter(x=>x[1]!==undefined&&x[1]!==null&&x[1]!=="");
  if(!rows.length)return "";
- return '<details class="resource-gate-disclosure"><summary>資源投資ゲート</summary><dl>'+rows.map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd></div>').join("")+'</dl></details>';
+ return '<details class="resource-gate-disclosure"><summary>資源投資ゲート</summary><dl>'+rows.map(x=>'<div><dt>'+esc(x[0])+'</dt><dd>'+esc(x[1])+'</dd></div>').join("")+'</dl><p class="detail-provenance">金種の検討上限は従来の制限値で、使用推奨・必要個数・投入承認ではありません。金種専用の三層評価は別欄で確認します。</p></details>';
 }
-function detail(p){const decisionLabel=p.currentDecisionStatus==="provisional"?"CURRENT r36・暫定":"CURRENT r36・正式判断";
+function detail(p){const decisionLabel="CURRENT "+esc(D.meta.revision)+(p.currentDecisionStatus==="provisional"?"・暫定":"・個体方針");
  const provenance="方針：CURRENT "+esc(D.meta.revision)+"（審査日 "+esc(p.currentDecisionDate||"未登録")+"）。種族Tierは役割別。PR未測定は0点を意味しません。";
  const srp=srpFor(p),measures=[...(p.measurements||[])].sort((a,b)=>(a.lv??999)-(b.lv??999)||String(a.metric).localeCompare(String(b.metric),"ja"));
  const rows=measures.length?measures.map(m=>'<tr><td>Lv'+esc(m.lv)+'</td><td>'+esc(m.metric)+'</td><td>'+esc(m.pr)+'</td><td>上位 '+(100-Number(m.pr)).toFixed(1)+'%</td></tr>').join(""):'<tr><td colspan="4">未測定</td></tr>';
@@ -445,6 +446,7 @@ function detail(p){const decisionLabel=p.currentDecisionStatus==="provisional"?"
  '<section class="detail-section"><div class="detail-section-head"><span>食材</span></div>'+foodGrid(p)+'</section><section class="detail-section">'+natureCard(p)+'</section><section class="detail-section subskill-section"><div class="detail-section-head"><span>サブスキル</span></div>'+subSkillGrid(p)+'</section>'+
  '<section class="decision-card"><div class="decision-top"><div><small>この個体の方針（'+decisionLabel+'）</small><strong>'+esc(p.disposition||"未設定")+'</strong></div><span>'+esc(p.refinement||"未設定")+'</span></div><p>'+esc(p.rationale||p.modelReviewReason)+'</p>'+
  '<dl class="r36-decision-grid"><div><dt>役割適性</dt><dd>'+esc(p.roleFit||"未評価")+'</dd></div><div><dt>料理貢献</dt><dd>'+esc(p.cookingContribution||"未算出")+'</dd></div><div><dt>投資の検討順</dt><dd>'+esc(p.investmentWindow||"未設定")+'</dd></div><div><dt>次の確認・行動</dt><dd>'+esc(p.resourceNextStep||"未設定")+'</dd></div></dl>'+resourceGateHtml(p)+'</section>'+
+ (window.SeedInvestmentUI?window.SeedInvestmentUI.individualHtml(p.id):'<p class="detail-provenance" role="alert">金種評価モデルは未読込のため未評価です。</p>')+
  '<details class="history-disclosure"><summary>PR履歴 <span>'+measures.length+'件</span></summary><table class="measure-table"><thead><tr><th>Lv</th><th>指標</th><th>PR</th><th>換算</th></tr></thead><tbody>'+rows+'</tbody></table></details>';}
 function openIndividual(id){
   if(suppressClick)return;
@@ -483,10 +485,8 @@ async function applyLatestUpdate(){
   const status=$("#updateStatus");
   status.textContent="更新を適用しています…";
   try{
-    if("caches" in window){
-      const keys=await caches.keys();
-      await Promise.all(keys.filter(k=>k.startsWith("pokemon-sleep-hub-")).map(k=>caches.delete(k)));
-    }
+    // Keep the offline fallback until the new worker has installed its full core.
+    // Versioned assets and _refresh bypass stale network responses without deleting it.
     const reg=await navigator.serviceWorker?.getRegistration?.();
     if(reg)await reg.update();
   }catch(_){}

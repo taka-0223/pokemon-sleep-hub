@@ -7,9 +7,10 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f6ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2530" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="./manifest.webmanifest?v=0.30-r36">
-<link rel="stylesheet" href="./style.css?v=0.30-r36">
-<link rel="stylesheet" href="./data-gate.css?v=0.30-r36">
+<link rel="manifest" href="./manifest.webmanifest?v=0.21-r37">
+<link rel="stylesheet" href="./style.css?v=0.21-r37">
+<link rel="stylesheet" href="./data-gate.css?v=0.21-r37">
+<link rel="stylesheet" href="./seed-ui.css?v=0.21-r37">
 <style>
 .facts-status{margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px;line-height:1.7}
 .facts-status[data-status="current"]{color:var(--text)}
@@ -38,7 +39,7 @@
   <div id="factsStatus" class="facts-status" role="status" aria-live="polite">手持ち・PRの更新状態を確認しています…</div>
   <section id="home" class="view active">
     <div class="page-title"><div><span class="eyebrow">ACCOUNT OVERVIEW</span><h2>現状</h2></div></div>
-    <p class="lede home-lede">個体・種族Tier・全33役割・Coverage・料理Phase 6の判断をCURRENT r36へ統一しました。未測定値は推定で埋めません。</p>
+    <p class="lede home-lede">CURRENT r37に金種の三層評価を追加しました。種族の投資候補・手持ち個体・具体的な投入案を分け、未評価や未測定値は推定で埋めません。</p>
 
     <div id="homePulse" class="home-pulse-grid"></div>
 
@@ -84,7 +85,7 @@
 
   <section id="roles" class="view">
     <div class="page-title"><div><span class="eyebrow">ROLE MAP</span><h2>役割一覧</h2></div></div>
-    <p class="lede">CURRENT r36の担当・バックアップ・料理需要と投資条件を確認できます。種族Tierは暫定と未評価を区別します。</p>
+    <p class="lede">現行CURRENTの担当・バックアップ・料理需要と投資条件を確認できます。種族Tierは暫定と未評価を区別します。金種の投資候補Tierは育成画面の別評価です。</p>
     <div id="roleList" class="compact-list"></div>
     <details class="species-tier-audit">
       <summary><span>種族役割Tier</span><b id="speciesTierCount">—件</b></summary>
@@ -98,6 +99,7 @@
     <div class="page-title"><div><span class="eyebrow">CONTEXT</span><h2>育成・イベント</h2></div></div>
     <div class="gate-entry"><div><strong>判断前チェック</strong><small>必要なときだけ、情報の確認・保留条件を表示します。</small></div><button type="button" class="gate-trigger" id="gateFromPlan">開く</button></div>
     <div id="resourceBar" class="resource-bar"></div>
+    <div id="seedInvestmentPanel"><p class="lede" role="status">金種評価は未読込です。表示されない場合は更新を確認してください。</p></div>
     <div class="section-head"><div><span class="eyebrow">EVENTS</span><h2>イベント情報</h2></div></div>
     <div id="eventList" class="event-grid"></div>
     <div class="section-head"><div><span class="eyebrow">TRAINING</span><h2>育成中</h2></div></div>
@@ -210,19 +212,21 @@
   <section id="dataGateResult" class="gate-result" aria-live="polite"></section>
   <details class="gate-source"><summary>参照元・入力の扱い</summary><p id="dataGateSource"></p></details>
 </dialog>
-<script src="./data.js?v=0.30-r36"></script>
-<script src="./updates.js?v=0.30-r36"></script>
-<script src="./srp.js?v=0.30-r36"></script>
-<script src="./data-gate.js?v=0.30-r36"></script>
-<script src="./app.js?v=0.30-r36"></script>
-<script src="./data-gate-ui.js?v=0.30-r36"></script>
+<script src="./data.js?v=0.21-r37"></script>
+<script src="./updates.js?v=0.21-r37"></script>
+<script src="./srp.js?v=0.21-r37"></script>
+<script src="./data-gate.js?v=0.21-r37"></script>
+<script src="./seed-rules.js?v=0.21-r37"></script>
+<script src="./seed-model.js?v=0.21-r37"></script>
+<script src="./seed-data.js?v=0.21-r37"></script>
+<script src="./seed-ui.js?v=0.21-r37"></script>
+<script src="./app.js?v=0.21-r37"></script>
+<script src="./data-gate-ui.js?v=0.21-r37"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
     try {
       const hadController = !!navigator.serviceWorker.controller;
-      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.30-r36", { updateViaCache: "none" });
-      await reg.update();
       let refreshing = false;
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (hadController && !refreshing) {
@@ -230,6 +234,8 @@ if ("serviceWorker" in navigator) {
           location.reload();
         }
       });
+      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.21-r37", { updateViaCache: "none" });
+      await reg.update();
     } catch (e) {
       console.warn("Service worker registration failed", e);
     }

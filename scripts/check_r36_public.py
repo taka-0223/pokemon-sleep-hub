@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Fail-closed validation of public r36 snapshot against exact approved artifact.
+"""Fail-closed validation of an approved r36/r37 public snapshot.
 
 The private workbook is never checked into Git. Its verified SHA256 is pinned
-in config/r36-public-manifest.json. The historic r35 facts log is read only as
+in a versioned public manifest. The historic r35 facts log is read only as
 a measurement-preservation baseline, never as a public fallback.
 """
 from __future__ import annotations
@@ -20,16 +20,42 @@ def require(ok, label):
     if not ok:
         raise ValueError(label)
 
+def manifest_profile(pinned: dict) -> dict:
+    revision = pinned.get("revision")
+    require(revision in ("2026-10-25-r36", "2026-11-01-r37"), "unsupported manifest revision")
+    # Only the already-published r36 manifest may omit these historical fields.
+    legacy = {"schema_version": "1.2", "app_version": "0.20", "model_version": "r36",
+              "decision_date": "2026-10-25"} if revision == "2026-10-25-r36" else {}
+    profile = {}
+    for key in ("schema_version", "app_version", "model_version", "decision_date"):
+        value = pinned.get(key, legacy.get(key))
+        require(isinstance(value, str) and bool(value.strip()), "manifest missing " + key)
+        profile[key] = value
+    if revision == "2026-11-01-r37":
+        for key in ("seed_model_version", "game_data_version"):
+            value = pinned.get(key)
+            require(isinstance(value, str) and bool(value.strip()), "manifest missing " + key)
+            profile[key] = value
+    return profile
+
 def verify(candidate: Path, manifest: Path, facts: Path):
     pinned=json.loads(manifest.read_text(encoding="utf-8"))
+    profile=manifest_profile(pinned)
     raw=candidate.read_bytes()
     sha=hashlib.sha1(b"blob "+str(len(raw)).encode()+b"\x00"+raw).hexdigest()
-    require(sha==pinned["data_blob_sha"],"Data blob differs from audited r36 snapshot")
+    require(sha==pinned["data_blob_sha"],"Data blob differs from audited snapshot")
     d=data(candidate,"window.APP_DATA=")
     m=d["meta"]
-    require(m["revision"]==pinned["revision"]=="2026-10-25-r36","revision mismatch")
+    require(m["revision"]==pinned["revision"],"revision mismatch")
     require(m["sourceSha256"]==pinned["source_sha256"],"source provenance mismatch")
-    require(m["schemaVersion"]=="1.2" and m["modelVersion"]=="r36","schema/model mismatch")
+    require(m["schemaVersion"]==profile["schema_version"] and m["modelVersion"]==profile["model_version"],"schema/model mismatch")
+    require(m["appVersion"]==profile["app_version"],"app version mismatch")
+    if "seed_model_version" in profile:
+        require(m.get("seedModelVersion")==profile["seed_model_version"],"seed model mismatch")
+        require(m.get("gameDataVersion")==profile["game_data_version"],"game data version mismatch")
+    require(all(m.get(key)==m["revision"] for key in
+                ("currentFactsRevision","currentDecisionRevision","currentAssignmentsRevision")),
+            "mixed current revisions")
     i=d["individuals"]; r=d["roles"]; c=d["coverageMatrix"]; a=d["speciesAssessments"]
     inactive=set(d["inactiveIndividualIds"]); ids=[x["id"] for x in i]
     require(len(i)==pinned["individuals"]==35 and len(set(ids))==35,"individual count/duplicates")
@@ -40,7 +66,7 @@ def verify(candidate: Path, manifest: Path, facts: Path):
     require(len(a)==pinned["assessments"]==63 and len({x["id"] for x in a})==63,"Tier count")
     require(len(d.get("speciesMaster",[]))==98,"species count")
     require(m["sourceMeasurementCount"]==pinned["source_measurements"]==219,"source measurements")
-    require(all(x.get("currentDecisionDate")=="2026-10-25" for x in i),"stale individual judgment")
+    require(all(x.get("currentDecisionDate")==profile["decision_date"] for x in i),"stale individual judgment")
     require(all(x.get("currentDecisionStatus") in ("active","provisional") for x in i),"decision status")
     require(all(x.get("investmentWindow") for x in i),"investment evaluation missing")
     require(all(x.get("roleFit") and x.get("cookingContribution") for x in i),"evaluation axes missing")
@@ -59,6 +85,7 @@ def verify(candidate: Path, manifest: Path, facts: Path):
             require(all(v in ids for v in re.findall(r"IND-\d{4}",str(val or ""))),
                     "retired coverage reference "+x["id"])
     for x in i:
+        require(bool(x.get("currentSpeciesKey")),"current species identity missing "+x["id"])
         if x["primaryPR"] is None:
             require(x.get("topPercent") is None,"unmeasured PR displayed as 0")
         if x.get("quality") is None:
@@ -75,7 +102,7 @@ def verify(candidate: Path, manifest: Path, facts: Path):
     require(next(x for x in r if x["id"]=="ROLE-029")["priority"]=="中","avocado priority")
     prior=data(facts,"window.APP_CURRENT_FACTS=")
     by_id={x["id"]:x for x in prior["individuals"]}
-    require(set(by_id)==set(ids),"r35/r36 active IDs differ")
+    require(set(by_id)==set(ids),"historical/current active IDs differ")
     def row_signature(xs):
         return Counter((m["lv"],m["metric"],m["pr"]) for m in xs)
     for x in i:

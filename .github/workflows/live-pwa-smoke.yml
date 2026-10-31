@@ -9,6 +9,8 @@ on:
       - "index.html"
       - "style.css"
       - "service-worker.js"
+      - "seed-*.js"
+      - "seed-ui.css"
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,44 +19,53 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
-      - name: Wait for published r36 acceptance build
+      - name: Wait for published r37 acceptance build
         run: |
           set -eu
           BASE="https://taka-0223.github.io/pokemon-sleep-hub"
           ok=0
           for i in $(seq 1 30); do
-            if curl -fsSL --retry 2 --retry-delay 2 "$BASE/?acceptance=$GITHUB_SHA" > /tmp/pwa-index.html               && grep -q '0.30-r36' /tmp/pwa-index.html; then
+            if curl -fsSL --retry 2 --retry-delay 2 "$BASE/?acceptance=$GITHUB_SHA" > /tmp/pwa-index.html               && grep -q '0.21-r37' /tmp/pwa-index.html; then
               ok=1
               break
             fi
             sleep 3
           done
           test "$ok" = 1
-      - name: Verify published r36 HTML and data over HTTPS
+      - name: Verify published r37 HTML and data over HTTPS
         run: |
           set -eu
           BASE="https://taka-0223.github.io/pokemon-sleep-hub"
           curl -fsSL --retry 4 --retry-delay 3 "$BASE/data.js?acceptance=$GITHUB_SHA" > /tmp/pwa-data.js
           curl -fsSL --retry 4 --retry-delay 3 "$BASE/app.js?acceptance=$GITHUB_SHA" > /tmp/pwa-app.js
+          curl -fsSL --retry 4 --retry-delay 3 "$BASE/seed-data.js?acceptance=$GITHUB_SHA" > /tmp/pwa-seed-data.js
           python3 - <<'PY'
           from pathlib import Path
           import json
           html=Path('/tmp/pwa-index.html').read_text()
           data=Path('/tmp/pwa-data.js').read_text().strip()
           app=Path('/tmp/pwa-app.js').read_text()
-          assert '0.30-r36' in html and 'coverageList' in html and 'speciesTierList' in html
+          assert '0.21-r37' in html and 'coverageList' in html and 'speciesTierList' in html and 'seedInvestmentPanel' in html
           assert '<script src="./current-facts.js' not in html
           assert '<script src="./current-decisions.js' not in html
           assert data.startswith('window.APP_DATA=') and data.endswith(';')
           d=json.loads(data[len('window.APP_DATA='):-1])
-          assert d['meta']['revision']=='2026-10-25-r36'
-          assert d['meta']['appVersion']=='0.20'
+          assert d['meta']['revision']=='2026-11-01-r37'
+          assert d['meta']['appVersion']=='0.21'
           assert len(d['individuals'])==35 and sum(x['primaryPR'] is not None for x in d['individuals'])==30
           assert len(d['roles'])==33 and len(d['coverageMatrix'])==47 and len(d['speciesAssessments'])==63
           assert 'function resourceGateHtml' in app and '資源投資ゲート' in app
-          print('LIVE HTTPS PASS: r36 / app 0.20 / 35 individuals / PR30 / 33 roles / 47 coverage / 63 role tiers / resource gate source')
+          seed_raw=Path('/tmp/pwa-seed-data.js').read_text().strip()
+          assert seed_raw.startswith('window.SEED_INVESTMENT_DATA=') and seed_raw.endswith(';')
+          seed=json.loads(seed_raw[len('window.SEED_INVESTMENT_DATA='):-1])
+          assert seed['meta']['sourceRevision']==d['meta']['revision']
+          assert seed['meta']['sourceSha256']==d['meta']['sourceSha256']
+          assert seed['meta']['gameDataVersion']==d['meta']['gameDataVersion']
+          assert len(seed['individuals'])==35 and len(seed['speciesAssessments'])==8
+          assert seed['resources']['mainSkillSeed']['value'] is None
+          print('LIVE HTTPS PASS: r37 / app 0.21 / 35 individuals / PR30 / 33 roles / 47 coverage / 63 role tiers / seed-v1')
           PY
-      - name: Verify rendered r36 semantics with headless Chrome
+      - name: Verify rendered r37 semantics with headless Chrome
         run: |
           set -eu
           CHROME=$(command -v google-chrome || command -v chromium-browser || command -v chromium || true)
@@ -82,7 +93,11 @@ jobs:
           assert 'MODEL_GAP' in role_section, 'MODEL_GAP badge missing'
           assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml
           assert 'IND-0041' in role_section
-          assert 'CURRENT 2026-10-25-r36' in roster
+          assert 'CURRENT 2026-11-01-r37' in roster
+          assert '1. 種族の投資候補' in roster and '2. この個体の投資候補' in roster
+          assert '3. 投入シナリオの比較' in roster and '使用承認なし' in roster
+          assert '2026-09-28の概数' in roster
+          assert 'data-seed-approved="true"' not in roster
           print(f'RENDER PASS: roster {roster_count}, roles {role_count}, Tiers {tier_count}, provisional/unrated/unmeasured/MODEL_GAP')
           PY
       - name: Capture smartphone acceptance screenshots
@@ -104,6 +119,6 @@ jobs:
       - name: Upload smartphone acceptance screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: r36-mobile-acceptance
+          name: r37-mobile-acceptance
           retention-days: 7
           path: /tmp/mobile/*.png

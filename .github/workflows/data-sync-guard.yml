@@ -14,8 +14,9 @@ jobs:
         uses: actions/checkout@v5
       - name: Check Python generator and legacy policy regression tests
         run: |
-          python3 -m py_compile scripts/build_data.py scripts/build_r36_snapshot.py scripts/check_r36_public.py scripts/check_data_sync.py scripts/build_current_decisions.py
+          python3 -m py_compile scripts/build_data.py scripts/build_r36_snapshot.py scripts/check_r36_public.py scripts/check_data_sync.py scripts/build_current_decisions.py scripts/build_seed_data.py
           python3 -m unittest discover -s tests -p 'test_*.py' -v
-      - name: Verify public r36 exact artifact and preservation of measurements
+      - name: Verify public r37 exact artifact and preservation of measurements
         run: |
-          python3 scripts/check_r36_public.py --candidate data.js --manifest config/r36-public-manifest.json --facts current-facts.js
+          python3 scripts/check_r36_public.py --candidate data.js --manifest config/r37-public-manifest.json --facts current-facts.js
+          node --test tests/seed-public.test.cjs

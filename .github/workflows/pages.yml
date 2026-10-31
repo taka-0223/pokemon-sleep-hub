@@ -19,7 +19,7 @@ jobs:
 
       - name: Validate source
         run: |
-          python3 -m py_compile scripts/build_srp.py scripts/build_data.py scripts/build_r36_snapshot.py scripts/check_r36_public.py scripts/build_current_facts.py scripts/build_current_decisions.py
+          python3 -m py_compile scripts/build_srp.py scripts/build_data.py scripts/build_r36_snapshot.py scripts/check_r36_public.py scripts/build_current_facts.py scripts/build_current_decisions.py scripts/build_seed_data.py
           node --check app.js
           node --check data.js
           node --check current-facts.js
@@ -30,9 +30,16 @@ jobs:
           node --check updates.js
           node --check data-gate.js
           node --check data-gate-ui.js
+          node --check seed-rules.js
+          node --check seed-model.js
+          node --check seed-data.js
+          node --check seed-ui.js
           node --test tests/data-gate.test.cjs
           node --test tests/r36-public.test.cjs
-          python3 scripts/check_r36_public.py --candidate data.js --manifest config/r36-public-manifest.json --facts current-facts.js
+          node --test tests/seed-model.test.cjs tests/seed-ui.test.cjs tests/seed-public.test.cjs
+          node --test tests/pwa-update.test.cjs
+          python3 -m unittest discover -s tests -p 'test_seed_*.py' -v
+          python3 scripts/check_r36_public.py --candidate data.js --manifest config/r37-public-manifest.json --facts current-facts.js
           grep -q '"status":"ready"' srp.js
 
       - name: Verify SRP generator
@@ -55,6 +62,11 @@ jobs:
             data-gate-ui.js
             data-gate.css
             data.js
+            seed-data.js
+            seed-model.js
+            seed-rules.js
+            seed-ui.js
+            seed-ui.css
             current-facts.js
             current-facts-merge.js
             current-decisions.js

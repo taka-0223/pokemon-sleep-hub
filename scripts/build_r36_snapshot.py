@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Build the public r36 single-revision snapshot from private CURRENT. Never commit XLSX.
+"""Build a supported public single-revision snapshot from private CURRENT.
 
-Usage: python3 scripts/build_r36_snapshot.py /private/CURRENT_r36.xlsx data.js
+Supports the audited r36 and seed-model r37 contracts only. Never commit XLSX.
+Usage: python3 scripts/build_r36_snapshot.py /private/CURRENT_r37.xlsx data.js
 """
 from __future__ import annotations
 import hashlib
@@ -14,12 +15,24 @@ from build_data import read_xlsx, dict_rows, verify_versioned_source_revision, b
 
 UNRATED = {"", "未測定", "未評価", "C（暫定）"}
 
+REVISION_PROFILES = {
+    "2026-10-25-r36": {"schemaVersion": "1.2", "appVersion": "0.20", "modelVersion": "r36"},
+    "2026-11-01-r37": {"schemaVersion": "1.3", "appVersion": "0.21",
+                       "modelVersion": "r36+seed-v1", "seedModelVersion": "seed-v1",
+                       "gameDataVersion": "seed-effects-2026-11-01-v1"},
+}
+
+def revision_profile(revision: str | None) -> dict:
+    """Do not label an unknown future workbook with an older model contract."""
+    if revision not in REVISION_PROFILES:
+        raise ValueError("Unsupported CURRENT revision: " + str(revision))
+    return dict(REVISION_PROFILES[revision])
+
 def build(workbook: Path, output: Path) -> dict:
     workbook = Path(workbook)
     wb = read_xlsx(workbook)
     revision = verify_versioned_source_revision(wb, workbook)
-    if not revision or int(revision.rsplit("-r", 1)[1]) < 36:
-        raise ValueError("CURRENT r36 or later version is required")
+    profile = revision_profile(revision)
     with tempfile.TemporaryDirectory() as td:
         baseline = Path(td) / "generated-private.js"
         subprocess.run([sys.executable, str(Path(__file__).with_name("build_data.py")), str(workbook), str(baseline)], check=True, capture_output=True)
@@ -32,20 +45,22 @@ def build(workbook: Path, output: Path) -> dict:
     decisions = dict_rows(wb["D_Decisions"], "decision_id")
     coverage = dict_rows(wb["P_RoleCoverage"], "coverage_id")
     by_role = {r["role_slot_id"]: r for r in roles}
+    by_individual = {r["individual_id"]: r for r in inds}
     by_decision = {d["individual_id"]: d for d in decisions}
     by_assessment = {(a["species_key"], a["role_key"]): a for a in assessments}
     by_species = {s["species_key"]: s for s in species}
     active_ids = {r["individual_id"] for r in inds if boolean_flag(r.get("active"), r["individual_id"] + ".active")}
     inactive_ids = {r["individual_id"] for r in inds} - active_ids
     if len(active_ids) != 35 or len(inactive_ids) != 8:
-        raise ValueError("r36 active/retired count mismatch")
+        raise ValueError("Supported CURRENT active/retired count mismatch")
     for p in data["individuals"]:
         iid = p["id"]
         if iid not in active_ids or iid not in by_decision:
             raise ValueError("Current decisions are missing " + iid)
         d = by_decision[iid]
         role = by_role.get(d.get("role_slot_id"), {})
-        a = by_assessment.get((next((i.get("target_species_key") for i in inds if i["individual_id"] == iid), None), role.get("role_key")), {})
+        source_individual = by_individual[iid]
+        a = by_assessment.get((source_individual.get("target_species_key"), role.get("role_key")), {})
         for out_key, column in (
             ("evaluationEvidence", "evaluation_evidence"), ("roleFit", "role_fit"),
             ("cookingContribution", "cooking_contribution"), ("investmentWindow", "investment_window"),
@@ -68,14 +83,16 @@ def build(workbook: Path, output: Path) -> dict:
         p["speciesReviewStatus"] = a.get("assessment_review_status")
         p["resourceGate"] = {
             "dedicatedCandy": d.get("dedicated_candy"), "universalCandy": d.get("universal_candy"),
-            "mainSeedCap": d.get("main_seed_cap"), "silverSeedPolicy": d.get("silver_seed_policy")}
+            "mainSeedCap": None if d.get("main_seed_cap") is None else str(d["main_seed_cap"]),
+            "silverSeedPolicy": d.get("silver_seed_policy")}
         p["rationale"] = d.get("rationale")
         p["priority"] = d.get("priority_rank")
         p["disposition"] = d.get("disposition")
         p["refinement"] = d.get("refinement_status")
         p["targetLevel"] = d.get("target_level")
         p["stopLevel"] = d.get("stop_level")
-        p["targetSpeciesKey"] = next((i.get("target_species_key") for i in inds if i["individual_id"] == iid), None)
+        p["currentSpeciesKey"] = source_individual.get("current_species_key")
+        p["targetSpeciesKey"] = source_individual.get("target_species_key")
     grade_order = {"S": 0, "A+": 1, "A": 2}
     for r in data["roles"]:
         row = by_role[r["id"]]
@@ -108,6 +125,10 @@ def build(workbook: Path, output: Path) -> dict:
                 "grade": a.get("grade"), "confidence": a.get("confidence"),
                 "status": a.get("status") or "unrated",
                 "assessmentStatus": a.get("assessment_review_status") or "unrated", "preferred": True})
+    # The generic builder is read through JSON, so coverage contains detached
+    # copies of roles. Rebuild it after enrichment to keep both UI views equal.
+    data["coverage"] = {key: [r for r in data["roles"] if r["type"] == role_type]
+                        for key, role_type in (("food", "食材"), ("berry", "きのみ"), ("skill", "スキル"))}
     c_by = {x["coverage_id"]: x for x in coverage}
     for c in data["coverageMatrix"]:
         row = c_by[c["id"]]
@@ -131,8 +152,8 @@ def build(workbook: Path, output: Path) -> dict:
         "roleTierCoverage": s.get("role_tier_coverage"),
         "modelReviewDate": s.get("model_review_date")} for s in species]
     meta = data["meta"]
-    meta.update(revision=revision, schemaVersion="1.2", generatedAt=revision[:10], appVersion="0.20",
-                modelVersion="r36", source=workbook.name,
+    meta.update(profile)
+    meta.update(revision=revision, generatedAt=revision[:10], source=workbook.name,
                 sourceSha256=hashlib.sha256(workbook.read_bytes()).hexdigest(),
                 sourceIndividualCount=len(inds), sourceMeasurementCount=len(dict_rows(wb["L_Measurements"], "measurement_id")),
                 currentFactsRevision=revision, currentDecisionRevision=revision,
@@ -149,6 +170,6 @@ def build(workbook: Path, output: Path) -> dict:
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        raise SystemExit("usage: build_r36_snapshot.py CURRENT_r36.xlsx data.js")
+        raise SystemExit("usage: build_r36_snapshot.py CURRENT_r36_or_r37.xlsx data.js")
     result = build(Path(sys.argv[1]), Path(sys.argv[2]))
     print(result["meta"]["revision"], len(result["individuals"]), "individuals", len(result["roles"]), "roles")

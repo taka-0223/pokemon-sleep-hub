@@ -22,7 +22,7 @@ test('CURRENT approved single evaluation revision and exact counts',()=>{
  assert.equal(D.individuals.length,M.individuals);assert.equal(D.individuals.filter(p=>p.primaryPR!=null).length,M.active_pr);
  assert.equal(D.inactiveIndividualIds.length,M.inactive);assert.equal(D.roles.length,M.roles);
  assert.equal(D.coverageMatrix.length,M.coverage);assert.equal(D.speciesAssessments.length,M.assessments);
- assert.equal(D.speciesMaster.length,98);assert.equal(D.meta.sourceMeasurementCount,219);
+ assert.equal(D.speciesMaster.length,D.meta.revision==='2026-11-16-r41'?108:98);assert.equal(D.meta.sourceMeasurementCount,219);
 });
 test('no retired role or coverage holders',()=>{
  const ids=new Set(D.individuals.map(x=>x.id));

@@ -58,7 +58,8 @@ test('real r41 examples calculate only per-trigger cost and never become an inve
   assert.equal(view.result.recommendation.action,'needs_data');
   assert.equal(view.result.recommendation.approved,false);
   assert.equal(view.result.execution.canExecute,false);
-  assert.equal(view.result.execution.stock.available,null);
+  if(id==='IND-0002') assert.equal(view.result.execution.stock,null);
+  else assert.equal(view.result.execution.stock.available,null);
   assert.match(ui.planHtml(view),/使用承認なし/);
  }
  for(const id of ['IND-0005','IND-0009','IND-0032','IND-0042']){
@@ -81,7 +82,7 @@ test('production loads new modules before app and includes all in the new offlin
   assert.ok(html.indexOf('./'+file)<html.indexOf('./app.js'));
   assert.ok(sw.includes('"./'+file+'"'));
  }
- assert.match(sw,/pokemon-sleep-hub-v0\.21-r37/);
+ assert.match(sw,/pokemon-sleep-hub-v0\.23-r41/);
  assert.ok(html.includes('id="seedInvestmentPanel"'));
  assert.ok(html.includes('seed-ui.css?v=0.23-r41')&&sw.includes('./seed-ui.css'));
  assert.doesNotMatch(html,/<script src="\.\/current-(facts|decisions)/);

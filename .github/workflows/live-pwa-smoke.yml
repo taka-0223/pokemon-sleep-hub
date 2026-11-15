@@ -93,9 +93,9 @@ jobs:
           assert 'MODEL_GAP' in role_section, 'MODEL_GAP badge missing'
           assert 'Core（暫定）' in rolehtml or 'Upgrade（暫定）' in rolehtml
           assert 'IND-0041' in role_section
-          assert 'ヌイコグマ Lv14（おくびょう）' in roster_section
-          assert 'ダークライ Lv27（てれや）' in roster_section
-          assert 'CURRENT 2026-11-01-r41' in roster
+          assert 'ヌイコグマ（おくびょう）' in roster_section
+          assert 'ダークライ（てれや）' in roster_section
+          assert 'CURRENT 2026-11-16-r41' in roster
           assert '1. 種族の投資候補' in roster and '2. この個体の投資候補' in roster
           assert '3. 投入シナリオの比較' in roster and '使用承認なし' in roster
           assert '2026-11-01のその時点の確認値' in roster

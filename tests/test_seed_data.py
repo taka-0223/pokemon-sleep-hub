@@ -345,6 +345,17 @@ class SnapshotVersionContractTests(unittest.TestCase):
                           "modelVersion": "r36+seed-v1", "seedModelVersion": "seed-v1",
                           "gameDataVersion": "seed-effects-2026-11-01-v1"})
 
+    def test_r41_has_current_account_and_seed_contract(self):
+        self.assertEqual(revision_profile("2026-11-16-r41"),
+                         {"schemaVersion": "1.3", "appVersion": "0.23",
+                          "modelVersion": "r36+seed-v1", "seedModelVersion": "seed-v1",
+                          "gameDataVersion": "seed-effects-2026-11-01-v1"})
+        manifest={"revision":"2026-11-16-r41","schema_version":"1.3","app_version":"0.23",
+                  "model_version":"r36+seed-v1","decision_date":"2026-10-25",
+                  "seed_model_version":"seed-v1","game_data_version":"seed-effects-2026-11-01-v1"}
+        self.assertEqual(manifest_profile(manifest),
+                         {k:v for k,v in manifest.items() if k!="revision"})
+
     def test_unknown_revision_cannot_reuse_r36_metadata(self):
         for revision in (None, "2026-10-24-r35", "2026-11-01-r36", "2026-11-02-r38"):
             with self.subTest(revision=revision):

@@ -189,7 +189,7 @@ def build_payload(workbook, *, source_revision, source_sha256, source_file):
             if match:
                 unlock = int(match[1])
                 subs.append({"level": unlock, "name": text(name),
-                             "unlocked": None if level is None else level >= unlock})
+                             "unlocked": (False if current_key == "darkrai" and name is None else None if level is None else level >= unlock)})
         subs.sort(key=lambda item: item["level"])
         account_assessment = assessment(decision, prefix="seed_", source_info=(
             source("D_Decisions", decision["decision_id"], source_revision,

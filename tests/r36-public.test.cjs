@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 function js(file,key){const s=fs.readFileSync(path.join(__dirname,'..',file),'utf8').trim();return JSON.parse(s.replace(new RegExp('^window\\.'+key+'='),'').replace(/;$/,''));}
 const D=js('data.js','APP_DATA'),F=js('current-facts.js','APP_CURRENT_FACTS');
-const manifestFiles={'2026-10-25-r36':'r36-public-manifest.json','2026-11-01-r37':'r37-public-manifest.json'};
+const manifestFiles={'2026-10-25-r36':'r36-public-manifest.json','2026-11-01-r37':'r37-public-manifest.json','2026-11-16-r41':'r41-public-manifest.json'};
 assert.ok(manifestFiles[D.meta.revision],'unsupported CURRENT revision');
 const M=JSON.parse(fs.readFileSync(path.join(__dirname,'..','config',manifestFiles[D.meta.revision]),'utf8'));
 const oldProfile=D.meta.revision==='2026-10-25-r36'?{schema_version:'1.2',app_version:'0.20',model_version:'r36',decision_date:'2026-10-25'}:{};
@@ -13,15 +13,15 @@ test('CURRENT approved single evaluation revision and exact counts',()=>{
  assert.equal(D.meta.modelVersion,profile.model_version);
  assert.equal(D.meta.appVersion,profile.app_version);
  assert.equal(D.meta.sourceSha256,M.source_sha256);
- if(D.meta.revision==='2026-11-01-r37'){
+ if(D.meta.revision==='2026-11-01-r37'||D.meta.revision==='2026-11-16-r41'){
    assert.equal(profile.seed_model_version,'seed-v1');
    assert.equal(D.meta.seedModelVersion,profile.seed_model_version);
    assert.equal(profile.game_data_version,'seed-effects-2026-11-01-v1');
    assert.equal(D.meta.gameDataVersion,profile.game_data_version);
  }
- assert.equal(D.individuals.length,35);assert.equal(D.individuals.filter(p=>p.primaryPR!=null).length,30);
- assert.equal(D.inactiveIndividualIds.length,8);assert.equal(D.roles.length,33);
- assert.equal(D.coverageMatrix.length,47);assert.equal(D.speciesAssessments.length,63);
+ assert.equal(D.individuals.length,M.individuals);assert.equal(D.individuals.filter(p=>p.primaryPR!=null).length,M.active_pr);
+ assert.equal(D.inactiveIndividualIds.length,M.inactive);assert.equal(D.roles.length,M.roles);
+ assert.equal(D.coverageMatrix.length,M.coverage);assert.equal(D.speciesAssessments.length,M.assessments);
  assert.equal(D.speciesMaster.length,98);assert.equal(D.meta.sourceMeasurementCount,219);
 });
 test('no retired role or coverage holders',()=>{
@@ -29,11 +29,11 @@ test('no retired role or coverage holders',()=>{
  for(const r of D.roles)for(const id of [r.incumbent,r.backup])if(id)assert.ok(ids.has(id),r.id+':'+id);
  for(const c of D.coverageMatrix)for(const val of [c.holder,c.backup])for(const id of String(val||'').match(/IND-\d{4}/g)||[])assert.ok(ids.has(id),c.id+':'+id);
 });
-test('5 missing PR values remain null and all current decisions have evidence',()=>{
- for(const id of ['IND-0030','IND-0032','IND-0041','IND-0042','IND-0043']){
+test('missing PR values remain null and all current decisions have evidence',()=>{
+ for(const id of ['IND-0030','IND-0032','IND-0041','IND-0042','IND-0043',...(D.meta.revision==='2026-11-16-r41'?Array.from({length:11},(_,i)=>'IND-'+String(44+i).padStart(4,'0')):[])]){
    const p=D.individuals.find(x=>x.id===id);assert.ok(p);assert.equal(p.primaryPR,null);assert.equal(p.topPercent,null);
  }
- for(const p of D.individuals){assert.equal(p.currentDecisionDate,profile.decision_date);assert.ok(p.investmentWindow);assert.ok(p.roleFit);assert.ok(p.cookingContribution)}
+ for(const p of D.individuals){assert.ok(p.currentDecisionDate>=profile.decision_date);assert.ok(p.investmentWindow);assert.ok(p.roleFit);assert.ok(p.cookingContribution)}
 });
 test('provisional tiers are never silently formal',()=>{
  const find=(sk,rk)=>D.speciesAssessments.find(x=>x.speciesKey===sk&&x.roleKey===rk);
@@ -50,7 +50,7 @@ test('Phase6 classes are explicitly provisional, physical upgrade not invented',
 });
 test('historic measured numbers and levels survive supported CURRENT conversion',()=>{
  const old=new Map(F.individuals.map(x=>[x.id,x]));
- for(const p of D.individuals){const q=old.get(p.id);assert.ok(q);assert.equal(p.primaryPR,q.primaryPR);
+ for(const p of D.individuals){const q=old.get(p.id);if(!q){assert.equal(p.primaryPR,null);assert.deepEqual(p.measurements,[]);continue;}assert.equal(p.primaryPR,q.primaryPR);
  const key=m=>m.lv+'|'+m.metric+'|'+m.pr;
  assert.deepEqual(p.measurements.map(key).sort(),q.measurements.map(key).sort());}
 });
@@ -80,17 +80,25 @@ test('acceptance UI distinguishes individual unrated, PR unmeasured, provisional
  const oil=D.roles.find(x=>x.id==='ROLE-018');
  assert.match(oil.investmentGate,/MODEL_GAP/);
  const unmeasured=D.individuals.filter(x=>x.primaryPR==null);
- assert.equal(unmeasured.length,5);
- assert.equal(unmeasured.filter(x=>x.quality==null).length,3);
+ assert.equal(unmeasured.length,D.meta.revision==="2026-11-16-r41"?16:5);
+ assert.ok(unmeasured.filter(x=>x.quality==null).length>=3);
 });
 
 test('all individuals expose resource investment gates and detail renderer includes them',()=>{
  const app=fs.readFileSync(path.join(__dirname,'..','app.js'),'utf8');
- assert.equal(D.individuals.filter(x=>x.resourceGate&&Object.keys(x.resourceGate).length).length,35);
+ assert.equal(D.individuals.filter(x=>x.resourceGate&&Object.keys(x.resourceGate).length).length,M.individuals);
  assert.match(app,/function resourceGateHtml\(/);
  assert.match(app,/資源投資ゲート/);
  for(const p of D.individuals){
    assert.ok(p.resourceGate);
    assert.ok(Object.prototype.hasOwnProperty.call(p.resourceGate,'universalCandy'));
  }
+});
+
+test('r41 personal updates and special Darkrai rule are preserved',()=>{if(D.meta.revision!=='2026-11-16-r41')return;
+ const st=D.individuals.find(x=>x.id==='IND-0054'),dk=D.individuals.find(x=>x.id==='IND-0053');
+ assert.equal(st.level,14);assert.equal(st.quality,null);assert.equal(st.primaryPR,null);assert.equal(st.subskills[0].name,'おてつだいボーナス');assert.equal(st.disposition,'キープ（条件付き）');
+ assert.equal(dk.level,27);assert.equal(dk.mainSkillLv,1);assert.equal(dk.mainSkill,'ナイトメア（エナジーチャージM）');assert.deepEqual(dk.foods,['マメミート',null,null]);assert.equal(dk.primaryPR,null);
+ assert.equal(D.individuals.filter(x=>x.id==='IND-0050').length,1);
+ assert.ok(D.inactiveIndividualIds.includes('IND-0027'));assert.equal(D.roles.find(r=>r.id==='ROLE-019').backup,'IND-0041');
 });

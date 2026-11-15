@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Build a supported public single-revision snapshot from private CURRENT.
 
-Supports the audited r36 and seed-model r37 contracts only. Never commit XLSX.
-Usage: python3 scripts/build_r36_snapshot.py /private/CURRENT_r37.xlsx data.js
+Supports audited r36/r37 plus r41 account updates. Never commit XLSX.
+Usage: python3 scripts/build_r36_snapshot.py /private/CURRENT_r41.xlsx data.js
 """
 from __future__ import annotations
 import hashlib
@@ -18,6 +18,9 @@ UNRATED = {"", "未測定", "未評価", "C（暫定）"}
 REVISION_PROFILES = {
     "2026-10-25-r36": {"schemaVersion": "1.2", "appVersion": "0.20", "modelVersion": "r36"},
     "2026-11-01-r37": {"schemaVersion": "1.3", "appVersion": "0.21",
+                       "modelVersion": "r36+seed-v1", "seedModelVersion": "seed-v1",
+                       "gameDataVersion": "seed-effects-2026-11-01-v1"},
+    "2026-11-16-r41": {"schemaVersion": "1.3", "appVersion": "0.23",
                        "modelVersion": "r36+seed-v1", "seedModelVersion": "seed-v1",
                        "gameDataVersion": "seed-effects-2026-11-01-v1"},
 }
@@ -51,7 +54,7 @@ def build(workbook: Path, output: Path) -> dict:
     by_species = {s["species_key"]: s for s in species}
     active_ids = {r["individual_id"] for r in inds if boolean_flag(r.get("active"), r["individual_id"] + ".active")}
     inactive_ids = {r["individual_id"] for r in inds} - active_ids
-    if len(active_ids) != 35 or len(inactive_ids) != 8:
+    if (len(active_ids), len(inactive_ids)) != ((45,9) if revision == "2026-11-16-r41" else (35,8)):
         raise ValueError("Supported CURRENT active/retired count mismatch")
     for p in data["individuals"]:
         iid = p["id"]
@@ -69,7 +72,7 @@ def build(workbook: Path, output: Path) -> dict:
             ("currentDecisionStatus", "decision_status")):
             p[out_key] = d.get(column)
         p["quality"] = d.get("individual_quality") if d.get("individual_quality") not in UNRATED else None
-        p["qualityStatus"] = "assessed" if p["quality"] else "unmeasured"
+        p["qualityStatus"] = ("unmeasured" if not p["quality"] else "provisional" if d.get("decision_status") == "provisional" else "assessed")
         p["roleId"] = role.get("role_slot_id")
         p["roleKey"] = role.get("role_key")
         p["roleName"] = role.get("role_name") or "未割当"
@@ -160,9 +163,9 @@ def build(workbook: Path, output: Path) -> dict:
                 currentAssignmentsRevision=revision, currentDecisionCount=len(data["individuals"]),
                 cookingPhase6="qualitative-adopted-quantitative-model-gap")
     data["inactiveIndividualIds"] = sorted(inactive_ids)
-    assert len(data["individuals"]) == 35 and len(data["roles"]) == 33
+    assert len(data["individuals"]) == (45 if revision == "2026-11-16-r41" else 35) and len(data["roles"]) == 33
     assert len(data["speciesAssessments"]) == 63 and len(data["coverageMatrix"]) == 47
-    assert sum(p["primaryPR"] is not None for p in data["individuals"]) == 30
+    assert sum(p["primaryPR"] is not None for p in data["individuals"]) == (29 if revision == "2026-11-16-r41" else 30)
     assert sum(c["domain"] == "食材" and c.get("cookingEvidence") == "P6_R23_PROVISIONAL"
                for c in data["coverageMatrix"]) == 19
     output.write_text("window.APP_DATA=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
@@ -170,6 +173,6 @@ def build(workbook: Path, output: Path) -> dict:
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        raise SystemExit("usage: build_r36_snapshot.py CURRENT_r36_or_r37.xlsx data.js")
+        raise SystemExit("usage: build_r36_snapshot.py CURRENT_r36_or_r37_or_r41.xlsx data.js")
     result = build(Path(sys.argv[1]), Path(sys.argv[2]))
     print(result["meta"]["revision"], len(result["individuals"]), "individuals", len(result["roles"]), "roles")

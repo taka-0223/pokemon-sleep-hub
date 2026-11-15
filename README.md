@@ -2,16 +2,16 @@
 
 個人のポケモンスリープアカウントを「何を持っていて、何が強く、どの役割が埋まっていて、どこを厳選中か」で俯瞰する読み取り専用PWAです。
 
-## Architecture — CURRENT r37 / seed-v1
+## Architecture — CURRENT r41 / seed-v1
 
-CURRENT r37（非公開SSOT、`2026-11-01-r37`）から`data.js`と`seed-data.js`を生成します。両方のsource revision / SHA-256が同一でなければ金種評価は表示しません。手持ちの事実・PR・既存方針・33 RoleSlot・47 Coverage・料理Phase 6の記録はr36から保持し、金種専用の三層モデルを追加しました。
+CURRENT r41（非公開SSOT、`2026-11-16-r41`）から`data.js`と`seed-data.js`を生成します。両方のsource revision / SHA-256が同一でなければ金種評価は表示しません。手持ちの事実・PR・既存方針・33 RoleSlot・47 Coverage・料理Phase 6の記録はr36から保持し、金種専用の三層モデルを追加しました。
 
 生成手順：
 
 ```bash
 python3 scripts/build_r36_snapshot.py /private/pokemon_sleep_decision_system_CURRENT_r37.xlsx data.js
 python3 scripts/build_seed_data.py /private/pokemon_sleep_decision_system_CURRENT_r37.xlsx seed-data.js
-python3 scripts/check_r36_public.py --candidate data.js --manifest config/r37-public-manifest.json --facts current-facts.js
+python3 scripts/check_r36_public.py --candidate data.js --manifest config/r41-public-manifest.json --facts current-facts.js
 node --test tests/seed-model.test.cjs tests/seed-ui.test.cjs tests/seed-public.test.cjs
 ```
 

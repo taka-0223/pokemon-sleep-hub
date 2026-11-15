@@ -1,5 +1,5 @@
 const CACHE_PREFIX="pokemon-sleep-hub-";
-const CACHE_NAME="pokemon-sleep-hub-v0.21-r37";
+const CACHE_NAME="pokemon-sleep-hub-v0.23-r41";
 const CORE=["./","./index.html","./style.css","./app.js","./data-gate.js","./data-gate-ui.js","./data-gate.css","./data.js","./seed-data.js","./seed-rules.js","./seed-model.js","./seed-ui.js","./seed-ui.css","./srp.js","./updates.js","./manifest.webmanifest","./icons/app-icon.svg"];
 const CORE_PATHS=new Set(CORE.map(p=>new URL(p,self.registration.scope).pathname));
 const ENTRY_PATHS=new Set(["./","./index.html"].map(p=>new URL(p,self.registration.scope).pathname));

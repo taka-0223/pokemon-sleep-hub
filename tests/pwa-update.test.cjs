@@ -2,7 +2,7 @@
 const test=require("node:test"),assert=require("node:assert/strict");
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
 const read=file=>fs.readFileSync(path.join(__dirname,"..",file),"utf8");
-const prefix="pokemon-sleep-hub-",currentCache=prefix+"v0.23-r41";
+const prefix="pokemon-sleep-hub-",currentCache=prefix+"v0.24-r42";
 const base="https://example.test/pokemon-sleep-hub/";
 
 function workerFixture(){
@@ -37,7 +37,7 @@ function workerFixture(){
     async fetch(request,options){
       log.push({url:request.url,cache:options&&options.cache});
       if(!controls.online)throw Error("offline");
-      return new Response("fresh html v0.23",{headers:{"content-type":"text/html"}});
+      return new Response("fresh html v0.24",{headers:{"content-type":"text/html"}});
     }
   };
   vm.runInNewContext(read("service-worker.js"),context);
@@ -74,27 +74,27 @@ test("legacy apply cache deletion followed by online reload rebuilds the offline
   const env=workerFixture();await env.lifecycle("install");await env.lifecycle("activate");
   for(const name of await env.caches.keys())if(name.startsWith(prefix))await env.caches.delete(name);
   assert.equal(await env.caches.match("./index.html"),undefined);
-  assert.equal(await (await env.navigate("?_refresh=123")).text(),"fresh html v0.23");
-  assert.equal(await (await env.caches.match("./index.html")).text(),"fresh html v0.23");
+  assert.equal(await (await env.navigate("?_refresh=123")).text(),"fresh html v0.24");
+  assert.equal(await (await env.caches.match("./index.html")).text(),"fresh html v0.24");
   assert.ok(env.log.some(entry=>entry&&entry.cache==="no-store"));
   env.controls.online=false;
-  assert.equal(await (await env.navigate()).text(),"fresh html v0.23");
+  assert.equal(await (await env.navigate()).text(),"fresh html v0.24");
 });
 
 test("ordinary navigation also refreshes offline HTML and cache write failure cannot block an online load",async()=>{
   const env=workerFixture();await env.lifecycle("install");
   await env.navigate();
-  assert.equal(await (await env.caches.match("./index.html")).text(),"fresh html v0.23");
+  assert.equal(await (await env.caches.match("./index.html")).text(),"fresh html v0.24");
   env.controls.putFails=true;
-  assert.equal(await (await env.navigate()).text(),"fresh html v0.23");
+  assert.equal(await (await env.navigate()).text(),"fresh html v0.24");
 });
 
 test("navigating to another document cannot replace the offline app entry",async()=>{
   const env=workerFixture();await env.lifecycle("install");
-  assert.equal(await (await env.navigate("README.md")).text(),"fresh html v0.23");
+  assert.equal(await (await env.navigate("README.md")).text(),"fresh html v0.24");
   assert.equal(await (await env.caches.match("./index.html")).text(),"installed ./index.html");
   await env.navigate("index.html?_reload=123");
-  assert.equal(await (await env.caches.match("./index.html")).text(),"fresh html v0.23");
+  assert.equal(await (await env.caches.match("./index.html")).text(),"fresh html v0.24");
 });
 
 test("new apply preserves app and unrelated caches while updating and issuing a fresh navigation",async()=>{

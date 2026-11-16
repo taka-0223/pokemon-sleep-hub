@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build a supported public single-revision snapshot from private CURRENT.
 
-Supports audited r36/r37 plus r41 account updates. Never commit XLSX.
+Supports audited r36/r37/r41/r42 account updates. Never commit XLSX.
 Usage: python3 scripts/build_r36_snapshot.py /private/CURRENT_r41.xlsx data.js
 """
 from __future__ import annotations
@@ -21,6 +21,9 @@ REVISION_PROFILES = {
                        "modelVersion": "r36+seed-v1", "seedModelVersion": "seed-v1",
                        "gameDataVersion": "seed-effects-2026-11-01-v1"},
     "2026-11-16-r41": {"schemaVersion": "1.3", "appVersion": "0.23",
+                       "modelVersion": "r36+seed-v1", "seedModelVersion": "seed-v1",
+                       "gameDataVersion": "seed-effects-2026-11-01-v1"},
+    "2026-11-17-r42": {"schemaVersion": "1.3", "appVersion": "0.24",
                        "modelVersion": "r36+seed-v1", "seedModelVersion": "seed-v1",
                        "gameDataVersion": "seed-effects-2026-11-01-v1"},
 }
@@ -54,7 +57,7 @@ def build(workbook: Path, output: Path) -> dict:
     by_species = {s["species_key"]: s for s in species}
     active_ids = {r["individual_id"] for r in inds if boolean_flag(r.get("active"), r["individual_id"] + ".active")}
     inactive_ids = {r["individual_id"] for r in inds} - active_ids
-    if (len(active_ids), len(inactive_ids)) != ((45,9) if revision == "2026-11-16-r41" else (35,8)):
+    if (len(active_ids), len(inactive_ids)) != ((43,12) if revision == "2026-11-17-r42" else ((45,9) if revision == "2026-11-16-r41" else (35,8))):
         raise ValueError("Supported CURRENT active/retired count mismatch")
     for p in data["individuals"]:
         iid = p["id"]
@@ -163,9 +166,9 @@ def build(workbook: Path, output: Path) -> dict:
                 currentAssignmentsRevision=revision, currentDecisionCount=len(data["individuals"]),
                 cookingPhase6="qualitative-adopted-quantitative-model-gap")
     data["inactiveIndividualIds"] = sorted(inactive_ids)
-    assert len(data["individuals"]) == (45 if revision == "2026-11-16-r41" else 35) and len(data["roles"]) == 33
+    assert len(data["individuals"]) == (43 if revision == "2026-11-17-r42" else (45 if revision == "2026-11-16-r41" else 35)) and len(data["roles"]) == 33
     assert len(data["speciesAssessments"]) == 63 and len(data["coverageMatrix"]) == 47
-    assert sum(p["primaryPR"] is not None for p in data["individuals"]) == (29 if revision == "2026-11-16-r41" else 30)
+    assert sum(p["primaryPR"] is not None for p in data["individuals"]) == (26 if revision == "2026-11-17-r42" else (29 if revision == "2026-11-16-r41" else 30))
     assert sum(c["domain"] == "食材" and c.get("cookingEvidence") == "P6_R23_PROVISIONAL"
                for c in data["coverageMatrix"]) == 19
     output.write_text("window.APP_DATA=" + json.dumps(data, ensure_ascii=False, separators=(",", ":")) + ";\n", encoding="utf-8")
@@ -173,6 +176,6 @@ def build(workbook: Path, output: Path) -> dict:
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        raise SystemExit("usage: build_r36_snapshot.py CURRENT_r36_or_r37_or_r41.xlsx data.js")
+        raise SystemExit("usage: build_r36_snapshot.py CURRENT_r36_or_r37_or_r41_or_r42.xlsx data.js")
     result = build(Path(sys.argv[1]), Path(sys.argv[2]))
     print(result["meta"]["revision"], len(result["individuals"]), "individuals", len(result["roles"]), "roles")

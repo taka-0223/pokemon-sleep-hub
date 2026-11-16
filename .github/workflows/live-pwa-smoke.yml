@@ -19,20 +19,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 7
     steps:
-      - name: Wait for published r41 acceptance build
+      - name: Wait for published r42 acceptance build
         run: |
           set -eu
           BASE="https://taka-0223.github.io/pokemon-sleep-hub"
           ok=0
           for i in $(seq 1 30); do
-            if curl -fsSL --retry 2 --retry-delay 2 "$BASE/?acceptance=$GITHUB_SHA" > /tmp/pwa-index.html               && grep -q '0.23-r41' /tmp/pwa-index.html; then
+            if curl -fsSL --retry 2 --retry-delay 2 "$BASE/?acceptance=$GITHUB_SHA" > /tmp/pwa-index.html               && grep -q '0.24-r42' /tmp/pwa-index.html; then
               ok=1
               break
             fi
             sleep 3
           done
           test "$ok" = 1
-      - name: Verify published r41 HTML and data over HTTPS
+      - name: Verify published r42 HTML and data over HTTPS
         run: |
           set -eu
           BASE="https://taka-0223.github.io/pokemon-sleep-hub"
@@ -45,14 +45,14 @@ jobs:
           html=Path('/tmp/pwa-index.html').read_text()
           data=Path('/tmp/pwa-data.js').read_text().strip()
           app=Path('/tmp/pwa-app.js').read_text()
-          assert '0.23-r41' in html and 'coverageList' in html and 'speciesTierList' in html and 'seedInvestmentPanel' in html
+          assert '0.24-r42' in html and 'coverageList' in html and 'speciesTierList' in html and 'seedInvestmentPanel' in html
           assert '<script src="./current-facts.js' not in html
           assert '<script src="./current-decisions.js' not in html
           assert data.startswith('window.APP_DATA=') and data.endswith(';')
           d=json.loads(data[len('window.APP_DATA='):-1])
-          assert d['meta']['revision']=='2026-11-16-r41'
-          assert d['meta']['appVersion']=='0.23'
-          assert len(d['individuals'])==45 and sum(x['primaryPR'] is not None for x in d['individuals'])==29
+          assert d['meta']['revision']=='2026-11-16-r42'
+          assert d['meta']['appVersion']=='0.24'
+          assert len(d['individuals'])==43 and sum(x['primaryPR'] is not None for x in d['individuals'])==26
           assert len(d['roles'])==33 and len(d['coverageMatrix'])==47 and len(d['speciesAssessments'])==63
           assert 'function resourceGateHtml' in app and '資源投資ゲート' in app
           seed_raw=Path('/tmp/pwa-seed-data.js').read_text().strip()
@@ -61,11 +61,11 @@ jobs:
           assert seed['meta']['sourceRevision']==d['meta']['revision']
           assert seed['meta']['sourceSha256']==d['meta']['sourceSha256']
           assert seed['meta']['gameDataVersion']==d['meta']['gameDataVersion']
-          assert len(seed['individuals'])==45 and len(seed['speciesAssessments'])==8
+          assert len(seed['individuals'])==43 and len(seed['speciesAssessments'])==8
           assert seed['resources']['mainSkillSeed']['value']==9
-          print('LIVE HTTPS PASS: r41 / app 0.23 / 45 individuals / PR29 / 33 roles / 47 coverage / 63 role tiers / seed-v1')
+          print('LIVE HTTPS PASS: r42 / app 0.24 / 45 individuals / PR29 / 33 roles / 47 coverage / 63 role tiers / seed-v1')
           PY
-      - name: Verify rendered r41 semantics with headless Chrome
+      - name: Verify rendered r42 semantics with headless Chrome
         run: |
           set -eu
           CHROME=$(command -v google-chrome || command -v chromium-browser || command -v chromium || true)
@@ -80,7 +80,7 @@ jobs:
           assert 'id="rosterList"' in roster and 'id="refine"' in roster
           roster_section=roster.split('id="rosterList"',1)[1].split('id="refine"',1)[0]
           roster_count=roster_section.count('class="dense-row roster-card')
-          assert roster_count==45, f'Roster DOM count {roster_count} != 45'
+          assert roster_count==43, f'Roster DOM count {roster_count} != 45'
           assert roster_section.count('未測定')>=5, 'PR unmeasured labels missing'
           assert roster_section.count('未評価')>=3, 'individual unrated labels missing'
           assert 'id="roleList"' in rolehtml and 'id="coverageList"' in rolehtml
@@ -95,7 +95,7 @@ jobs:
           assert 'IND-0041' in role_section
           assert 'ヌイコグマ（おくびょう）' in roster_section
           assert 'ダークライ（てれや）' in roster_section
-          assert 'CURRENT 2026-11-16-r41' in roster
+          assert 'CURRENT 2026-11-16-r42' in roster
           assert '1. 種族の投資候補' in roster and '2. この個体の投資候補' in roster
           assert '3. 投入シナリオの比較' in roster and '使用承認なし' in roster
           assert '2026-11-01のその時点の確認値' in roster
@@ -121,6 +121,6 @@ jobs:
       - name: Upload smartphone acceptance screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: r41-mobile-acceptance
+          name: r42-mobile-acceptance
           retention-days: 7
           path: /tmp/mobile/*.png

@@ -2,16 +2,16 @@
 
 個人のポケモンスリープアカウントを「何を持っていて、何が強く、どの役割が埋まっていて、どこを厳選中か」で俯瞰する読み取り専用PWAです。
 
-## Architecture — CURRENT r41 / seed-v1
+## Architecture — CURRENT r42 / seed-v1
 
-CURRENT r41（非公開SSOT、`2026-11-16-r41`）から`data.js`と`seed-data.js`を生成します。両方のsource revision / SHA-256が同一でなければ金種評価は表示しません。手持ちの事実・PR・既存方針・33 RoleSlot・47 Coverage・料理Phase 6の記録はr36から保持し、金種専用の三層モデルを追加しました。
+CURRENT r42（非公開SSOT、`2026-11-17-r42`）から`data.js`と`seed-data.js`を生成します。両方のsource revision / SHA-256が同一でなければ金種評価は表示しません。手持ちの事実・PR・既存方針・33 RoleSlot・47 Coverage・料理Phase 6の記録はr36から保持し、金種専用の三層モデルを追加しました。
 
 生成手順：
 
 ```bash
-python3 scripts/build_r36_snapshot.py /private/pokemon_sleep_decision_system_CURRENT_r37.xlsx data.js
-python3 scripts/build_seed_data.py /private/pokemon_sleep_decision_system_CURRENT_r37.xlsx seed-data.js
-python3 scripts/check_r36_public.py --candidate data.js --manifest config/r41-public-manifest.json --facts current-facts.js
+python3 scripts/build_r36_snapshot.py /private/pokemon_sleep_decision_system_CURRENT_r42.xlsx data.js
+python3 scripts/build_seed_data.py /private/pokemon_sleep_decision_system_CURRENT_r42.xlsx seed-data.js
+python3 scripts/check_r36_public.py --candidate data.js --manifest config/r42-public-manifest.json --facts current-facts.js
 node --test tests/seed-model.test.cjs tests/seed-ui.test.cjs tests/seed-public.test.cjs
 ```
 
@@ -25,7 +25,7 @@ node --test tests/seed-model.test.cjs tests/seed-ui.test.cjs tests/seed-public.t
 
 `seed-rules.js`は4スキルの資料に基づく効果表です。特殊・複合スキルは代用しません。`gameDataVersion`は収録した効果データの独自revisionで、公式ゲームの版番号ではありません。今使う案から将来の進化・サブスキルLvを先引きせず、概数在庫は確定残数にしません。旧`S_Scenarios`は当時の提案のまま保持し、自動推薦しません。詳しくは[データ契約](docs/SEED_MODEL_DATA_CONTRACT.md)を参照。
 
-## UI v0.21
+## UI v0.24
 
 - 現状: アカウントKPI、役割充足、主な手持ち
 - 手持ち: 高密度一覧、検索・品質・役割フィルタ。詳細ではサブスキルを公式アプリ準拠の金/青/白枠で表示
@@ -34,7 +34,7 @@ node --test tests/seed-model.test.cjs tests/seed-ui.test.cjs tests/seed-public.t
 - 育成: 資源、金種三層評価・参考計算、イベント、育成中個体
 - 各画面は下部ナビまたは左右スワイプで移動。スワイプは指の移動量に追従して隣画面を引き込む
 
-## r37 public data
+## r42 public data
 
 個体・既存評価は`data.js`、金種専用評価は同一CURRENTから生成した`seed-data.js`を使います。`current-facts.js`/`current-decisions.js`はr35の測定保全テストの参照用として残していますが、本番HTMLからは読み込みません。
 
@@ -49,5 +49,5 @@ PRとmainへのpushでGitHub ActionsがJS/Python・データ契約を検証し�
 - 判定は `data-gate.js` の純粋関数で、結果は READY / PROVISIONAL / VERIFY / HOLD / MODEL_GAP の5種類です。
 - 博士送りは情報が揃ってもアプリから許可・実行できません。料理モデル未整備もユーザーの在庫不足と区別します。
 - 入力値は画面内の一時情報で、`CURRENT.xlsx` や `data.js`、ブラウザ保存領域には書き込みません。
-- 方針の正本は最新CURRENTの `C_DataPolicy` / `C_DecisionGate`。公開snapshotはr37、既存個体判断の審査日は2026-10-25のまま保持します。未測定値は未算出です。
+- 方針の正本は最新CURRENTの `C_DataPolicy` / `C_DecisionGate`。公開snapshotはr42、既存個体判断の審査日は2026-10-25のまま保持します。未測定値は未算出です。
 - テスト: `node --test tests/data-gate.test.cjs`。CIはPRとmain pushでゲートを検証します。

@@ -7,10 +7,10 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f5f6ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#1a2530" media="(prefers-color-scheme: dark)">
-<link rel="manifest" href="./manifest.webmanifest?v=0.23-r41">
-<link rel="stylesheet" href="./style.css?v=0.23-r41">
-<link rel="stylesheet" href="./data-gate.css?v=0.23-r41">
-<link rel="stylesheet" href="./seed-ui.css?v=0.23-r41">
+<link rel="manifest" href="./manifest.webmanifest?v=0.24-r42">
+<link rel="stylesheet" href="./style.css?v=0.24-r42">
+<link rel="stylesheet" href="./data-gate.css?v=0.24-r42">
+<link rel="stylesheet" href="./seed-ui.css?v=0.24-r42">
 <style>
 .facts-status{margin:0 0 14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--muted);font-size:12px;line-height:1.7}
 .facts-status[data-status="current"]{color:var(--text)}
@@ -39,7 +39,7 @@
   <div id="factsStatus" class="facts-status" role="status" aria-live="polite">手持ち・PRの更新状態を確認しています…</div>
   <section id="home" class="view active">
     <div class="page-title"><div><span class="eyebrow">ACCOUNT OVERVIEW</span><h2>現状</h2></div></div>
-    <p class="lede home-lede">CURRENT r41で手持ち45体と金種評価を同じ正本から同期しました。種族の投資候補・手持ち個体・具体的な投入案を分け、未評価や未測定値は推定で埋めません。</p>
+    <p class="lede home-lede">CURRENT r42で手持ち43体と金種評価を同じ正本から同期しました。種族の投資候補・手持ち個体・具体的な投入案を分け、未評価や未測定値は推定で埋めません。</p>
 
     <div id="homePulse" class="home-pulse-grid"></div>
 
@@ -89,7 +89,7 @@
     <div id="roleList" class="compact-list"></div>
     <details class="species-tier-audit">
       <summary><span>種族役割Tier</span><b id="speciesTierCount">—件</b></summary>
-      <p>r41のM_SpeciesAssessmentをrole_key別に全件表示します。暫定Tierは「暫定S」のように表記し、未評価とは分けます。</p>
+      <p>r42のM_SpeciesAssessmentをrole_key別に全件表示します。暫定Tierは「暫定S」のように表記し、未評価とは分けます。</p>
       <div id="speciesTierList" class="species-tier-list"></div>
     </details>
     <div class="section-head"><div><h2>食材・きのみ・スキルのCoverage</h2></div></div><p class="lede">料理のCore/Upgrade/Flex区分は暫定です。Coverage充足とアメ投入許可は別判断です。</p><div id="coverageList"></div>
@@ -212,16 +212,16 @@
   <section id="dataGateResult" class="gate-result" aria-live="polite"></section>
   <details class="gate-source"><summary>参照元・入力の扱い</summary><p id="dataGateSource"></p></details>
 </dialog>
-<script src="./data.js?v=0.23-r41"></script>
-<script src="./updates.js?v=0.23-r41"></script>
-<script src="./srp.js?v=0.23-r41"></script>
-<script src="./data-gate.js?v=0.23-r41"></script>
-<script src="./seed-rules.js?v=0.23-r41"></script>
-<script src="./seed-model.js?v=0.23-r41"></script>
-<script src="./seed-data.js?v=0.23-r41"></script>
-<script src="./seed-ui.js?v=0.23-r41"></script>
-<script src="./app.js?v=0.23-r41"></script>
-<script src="./data-gate-ui.js?v=0.23-r41"></script>
+<script src="./data.js?v=0.24-r42"></script>
+<script src="./updates.js?v=0.24-r42"></script>
+<script src="./srp.js?v=0.24-r42"></script>
+<script src="./data-gate.js?v=0.24-r42"></script>
+<script src="./seed-rules.js?v=0.24-r42"></script>
+<script src="./seed-model.js?v=0.24-r42"></script>
+<script src="./seed-data.js?v=0.24-r42"></script>
+<script src="./seed-ui.js?v=0.24-r42"></script>
+<script src="./app.js?v=0.24-r42"></script>
+<script src="./data-gate-ui.js?v=0.24-r42"></script>
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", async () => {
@@ -234,7 +234,7 @@ if ("serviceWorker" in navigator) {
           location.reload();
         }
       });
-      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.23-r41", { updateViaCache: "none" });
+      const reg = await navigator.serviceWorker.register("./service-worker.js?v=0.24-r42", { updateViaCache: "none" });
       await reg.update();
     } catch (e) {
       console.warn("Service worker registration failed", e);

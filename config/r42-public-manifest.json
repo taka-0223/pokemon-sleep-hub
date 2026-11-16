@@ -1,0 +1,23 @@
+{
+  "revision": "2026-11-17-r42",
+  "schema_version": "1.3",
+  "app_version": "0.24",
+  "model_version": "r36+seed-v1",
+  "seed_model_version": "seed-v1",
+  "game_data_version": "seed-effects-2026-11-01-v1",
+  "decision_date": "2026-10-25",
+  "source_sha256": "22cf0bb047eed2c38635477b5f5cdd86bfafce5d16bbaa1e03e656ca07eb9d89",
+  "data_blob_sha": "79d441bd29342a0c4d3983d80250e08eb4d34c05",
+  "seed_data_blob_sha": "81789f37b00cbbc096b3173c239ed9f22ee5205d",
+  "individuals": 43,
+  "active_pr": 26,
+  "inactive": 12,
+  "roles": 33,
+  "coverage": 47,
+  "assessments": 63,
+  "food_classifications": 19,
+  "source_measurements": 219,
+  "seed_species_assessments": 8,
+  "seed_account_provisional": 1,
+  "seed_legacy_scenarios": 22
+}

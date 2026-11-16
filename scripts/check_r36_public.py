@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed validation of an approved r36/r37/r41 public snapshot.
+"""Fail-closed validation of an approved r36/r37/r41/r42 public snapshot.
 
 The private workbook is never checked into Git. Its verified SHA256 is pinned
 in a versioned public manifest. The historic r35 facts log is read only as
@@ -22,7 +22,7 @@ def require(ok, label):
 
 def manifest_profile(pinned: dict) -> dict:
     revision = pinned.get("revision")
-    require(revision in ("2026-10-25-r36", "2026-11-01-r37", "2026-11-16-r41"), "unsupported manifest revision")
+    require(revision in ("2026-10-25-r36", "2026-11-01-r37", "2026-11-16-r41", "2026-11-17-r42"), "unsupported manifest revision")
     # Only the already-published r36 manifest may omit these historical fields.
     legacy = {"schema_version": "1.2", "app_version": "0.20", "model_version": "r36",
               "decision_date": "2026-10-25"} if revision == "2026-10-25-r36" else {}
@@ -31,7 +31,7 @@ def manifest_profile(pinned: dict) -> dict:
         value = pinned.get(key, legacy.get(key))
         require(isinstance(value, str) and bool(value.strip()), "manifest missing " + key)
         profile[key] = value
-    if revision in ("2026-11-01-r37", "2026-11-16-r41"):
+    if revision in ("2026-11-01-r37", "2026-11-16-r41", "2026-11-17-r42"):
         for key in ("seed_model_version", "game_data_version"):
             value = pinned.get(key)
             require(isinstance(value, str) and bool(value.strip()), "manifest missing " + key)
@@ -58,16 +58,16 @@ def verify(candidate: Path, manifest: Path, facts: Path):
             "mixed current revisions")
     i=d["individuals"]; r=d["roles"]; c=d["coverageMatrix"]; a=d["speciesAssessments"]
     inactive=set(d["inactiveIndividualIds"]); ids=[x["id"] for x in i]
-    expected_live=45 if m["revision"]=="2026-11-16-r41" else 35
-    expected_inactive=9 if m["revision"]=="2026-11-16-r41" else 8
-    expected_pr=29 if m["revision"]=="2026-11-16-r41" else 30
+    expected_live=43 if m["revision"]=="2026-11-17-r42" else (45 if m["revision"]=="2026-11-16-r41" else 35)
+    expected_inactive=12 if m["revision"]=="2026-11-17-r42" else (9 if m["revision"]=="2026-11-16-r41" else 8)
+    expected_pr=26 if m["revision"]=="2026-11-17-r42" else (29 if m["revision"]=="2026-11-16-r41" else 30)
     require(len(i)==pinned["individuals"]==expected_live and len(set(ids))==expected_live,"individual count/duplicates")
     require(len(inactive)==pinned["inactive"]==expected_inactive and not (inactive&set(ids)),"retired present")
     require(sum(x["primaryPR"] is not None for x in i)==pinned["active_pr"]==expected_pr,"PR count")
     require(len(r)==pinned["roles"]==33 and len({x["id"] for x in r})==33,"RoleSlot count")
     require(len(c)==pinned["coverage"]==47 and len({x["id"] for x in c})==47,"Coverage count")
     require(len(a)==pinned["assessments"]==63 and len({x["id"] for x in a})==63,"Tier count")
-    require(len(d.get("speciesMaster",[]))==(108 if m["revision"]=="2026-11-16-r41" else 98),"species count")
+    require(len(d.get("speciesMaster",[]))==(108 if m["revision"] in ("2026-11-16-r41","2026-11-17-r42") else 98),"species count")
     require(m["sourceMeasurementCount"]==pinned["source_measurements"]==219,"source measurements")
     require(all((x.get("currentDecisionDate") or "")>=profile["decision_date"] for x in i),"stale individual judgment")
     require(all(x.get("currentDecisionStatus") in ("active","provisional") for x in i),"decision status")
@@ -94,7 +94,7 @@ def verify(candidate: Path, manifest: Path, facts: Path):
         if x.get("quality") is None:
             require(x.get("qualityStatus")=="unmeasured","unrated individual status")
     for iid in (["IND-0030","IND-0032","IND-0041","IND-0042","IND-0043"]+
-                (["IND-%04d"%j for j in range(44,55)] if m["revision"]=="2026-11-16-r41" else [])):
+                (["IND-%04d"%j for j in range(44,56 if m["revision"]=="2026-11-17-r42" else 55)] if m["revision"] in ("2026-11-16-r41","2026-11-17-r42") else [])):
         x=next(y for y in i if y["id"]==iid)
         require(x["primaryPR"] is None,"known unmeasured PR "+iid)
     tiers={(x["speciesKey"],x["roleKey"]):x for x in a}
@@ -108,9 +108,9 @@ def verify(candidate: Path, manifest: Path, facts: Path):
     by_id={x["id"]:x for x in prior["individuals"]}
     new_ids=set(ids)-set(by_id)
     retired_old=set(by_id)-set(ids)
-    if m["revision"]=="2026-11-16-r41":
-        require(new_ids=={"IND-%04d"%j for j in range(44,55)}, "unexpected newly active IDs")
-        require(retired_old=={"IND-0027"}, "old measured individual not archived as expected")
+    if m["revision"] in ("2026-11-16-r41","2026-11-17-r42"):
+        require(new_ids=={"IND-%04d"%j for j in range(44,56 if m["revision"]=="2026-11-17-r42" else 55)}, "unexpected newly active IDs")
+        require(retired_old==({"IND-0027","IND-0021","IND-0026","IND-0037"} if m["revision"]=="2026-11-17-r42" else {"IND-0027"}), "old measured individual not archived as expected")
         require("IND-0027" in inactive, "retired measured individual absent from archive")
         dar=next(x for x in i if x["id"]=="IND-0053")
         require(dar["primaryPR"] is None and dar["mainSkill"].startswith("ナイトメア"), "Darkrai special PR must remain unmeasured")

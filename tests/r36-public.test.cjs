@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 function js(file,key){const s=fs.readFileSync(path.join(__dirname,'..',file),'utf8').trim();return JSON.parse(s.replace(new RegExp('^window\\.'+key+'='),'').replace(/;$/,''));}
 const D=js('data.js','APP_DATA'),F=js('current-facts.js','APP_CURRENT_FACTS');
-const manifestFiles={'2026-10-25-r36':'r36-public-manifest.json','2026-11-01-r37':'r37-public-manifest.json','2026-11-16-r41':'r41-public-manifest.json'};
+const manifestFiles={'2026-10-25-r36':'r36-public-manifest.json','2026-11-01-r37':'r37-public-manifest.json','2026-11-16-r41':'r41-public-manifest.json','2026-11-17-r42':'r42-public-manifest.json'};
 assert.ok(manifestFiles[D.meta.revision],'unsupported CURRENT revision');
 const M=JSON.parse(fs.readFileSync(path.join(__dirname,'..','config',manifestFiles[D.meta.revision]),'utf8'));
 const oldProfile=D.meta.revision==='2026-10-25-r36'?{schema_version:'1.2',app_version:'0.20',model_version:'r36',decision_date:'2026-10-25'}:{};
@@ -13,7 +13,7 @@ test('CURRENT approved single evaluation revision and exact counts',()=>{
  assert.equal(D.meta.modelVersion,profile.model_version);
  assert.equal(D.meta.appVersion,profile.app_version);
  assert.equal(D.meta.sourceSha256,M.source_sha256);
- if(D.meta.revision==='2026-11-01-r37'||D.meta.revision==='2026-11-16-r41'){
+ if(D.meta.revision==='2026-11-01-r37'||['2026-11-16-r41','2026-11-17-r42'].includes(D.meta.revision)){
    assert.equal(profile.seed_model_version,'seed-v1');
    assert.equal(D.meta.seedModelVersion,profile.seed_model_version);
    assert.equal(profile.game_data_version,'seed-effects-2026-11-01-v1');
@@ -22,7 +22,7 @@ test('CURRENT approved single evaluation revision and exact counts',()=>{
  assert.equal(D.individuals.length,M.individuals);assert.equal(D.individuals.filter(p=>p.primaryPR!=null).length,M.active_pr);
  assert.equal(D.inactiveIndividualIds.length,M.inactive);assert.equal(D.roles.length,M.roles);
  assert.equal(D.coverageMatrix.length,M.coverage);assert.equal(D.speciesAssessments.length,M.assessments);
- assert.equal(D.speciesMaster.length,D.meta.revision==='2026-11-16-r41'?108:98);assert.equal(D.meta.sourceMeasurementCount,219);
+ assert.equal(D.speciesMaster.length,['2026-11-16-r41','2026-11-17-r42'].includes(D.meta.revision)?108:98);assert.equal(D.meta.sourceMeasurementCount,219);
 });
 test('no retired role or coverage holders',()=>{
  const ids=new Set(D.individuals.map(x=>x.id));
@@ -30,7 +30,7 @@ test('no retired role or coverage holders',()=>{
  for(const c of D.coverageMatrix)for(const val of [c.holder,c.backup])for(const id of String(val||'').match(/IND-\d{4}/g)||[])assert.ok(ids.has(id),c.id+':'+id);
 });
 test('missing PR values remain null and all current decisions have evidence',()=>{
- for(const id of ['IND-0030','IND-0032','IND-0041','IND-0042','IND-0043',...(D.meta.revision==='2026-11-16-r41'?Array.from({length:11},(_,i)=>'IND-'+String(44+i).padStart(4,'0')):[])]){
+ for(const id of ['IND-0030','IND-0032','IND-0041','IND-0042','IND-0043',...(['2026-11-16-r41','2026-11-17-r42'].includes(D.meta.revision)?Array.from({length:D.meta.revision==='2026-11-17-r42'?12:11},(_,i)=>'IND-'+String(44+i).padStart(4,'0')):[])]){
    const p=D.individuals.find(x=>x.id===id);assert.ok(p);assert.equal(p.primaryPR,null);assert.equal(p.topPercent,null);
  }
  for(const p of D.individuals){assert.ok(p.currentDecisionDate>=profile.decision_date);assert.ok(p.investmentWindow);assert.ok(p.roleFit);assert.ok(p.cookingContribution)}
@@ -80,7 +80,7 @@ test('acceptance UI distinguishes individual unrated, PR unmeasured, provisional
  const oil=D.roles.find(x=>x.id==='ROLE-018');
  assert.match(oil.investmentGate,/MODEL_GAP/);
  const unmeasured=D.individuals.filter(x=>x.primaryPR==null);
- assert.equal(unmeasured.length,D.meta.revision==="2026-11-16-r41"?16:5);
+ assert.equal(unmeasured.length,D.meta.revision==="2026-11-17-r42"?17:(D.meta.revision==="2026-11-16-r41"?16:5));
  assert.ok(unmeasured.filter(x=>x.quality==null).length>=3);
 });
 
@@ -95,7 +95,7 @@ test('all individuals expose resource investment gates and detail renderer inclu
  }
 });
 
-test('r41 personal updates and special Darkrai rule are preserved',()=>{if(D.meta.revision!=='2026-11-16-r41')return;
+test('r41 personal updates and special Darkrai rule are preserved',()=>{if(!['2026-11-16-r41','2026-11-17-r42'].includes(D.meta.revision))return;
  const st=D.individuals.find(x=>x.id==='IND-0054'),dk=D.individuals.find(x=>x.id==='IND-0053');
  assert.equal(st.level,14);assert.equal(st.quality,null);assert.equal(st.primaryPR,null);assert.equal(st.subskills[0].name,'おてつだいボーナス');assert.equal(st.disposition,'キープ（条件付き）');
  assert.equal(dk.level,27);assert.equal(dk.mainSkillLv,1);assert.equal(dk.mainSkill,'ナイトメア（エナジーチャージM）');assert.deepEqual(dk.foods,['マメミート',null,null]);assert.equal(dk.primaryPR,null);

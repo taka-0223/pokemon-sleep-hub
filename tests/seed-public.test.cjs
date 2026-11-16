@@ -4,14 +4,14 @@ const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypt
 const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 const jsonp=(file,key)=>{const raw=read(file).trim();assert.ok(raw.startsWith(key+'=')&&raw.endsWith(';'));return JSON.parse(raw.slice(key.length+1,-1));};
-const manifest=JSON.parse(read('config/r41-public-manifest.json'));
+const manifest=JSON.parse(read('config/r42-public-manifest.json'));
 const appData=jsonp('data.js','window.APP_DATA');
 const seedData=jsonp('seed-data.js','window.SEED_INVESTMENT_DATA');
 const model=require('../seed-model.js'),rules=require('../seed-rules.js'),ui=require('../seed-ui.js');
 const ctx={appData,seedData,model,rules};
 const blobSha=file=>{const b=Buffer.from(read(file));return crypto.createHash('sha1').update(Buffer.concat([Buffer.from('blob '+b.length+'\0'),b])).digest('hex');};
 
-test('seed sidecar is exactly pinned to the same r41 source, model and effect-data revision',()=>{
+test('seed sidecar is exactly pinned to the same r42 source, model and effect-data revision',()=>{
  assert.equal(blobSha('seed-data.js'),manifest.seed_data_blob_sha);
  assert.equal(blobSha('data.js'),manifest.data_blob_sha);
  assert.equal(seedData.meta.sourceRevision,manifest.revision);
@@ -23,7 +23,7 @@ test('seed sidecar is exactly pinned to the same r41 source, model and effect-da
  assert.equal(seedData.meta.gameDataVersion,rules.DATA_VERSION);
  assert.equal(ui.validateData(ctx).valid,true);
 });
-test('all 45 active individuals are visible, archived ones excluded, known current facts preserved',()=>{
+test('all 43 active individuals are visible, archived ones excluded, known current facts preserved',()=>{
  assert.equal(seedData.individuals.length,manifest.individuals);
  assert.deepEqual(seedData.individuals.map(p=>p.id).sort(),appData.individuals.map(p=>p.id).sort());
  for(const p of seedData.individuals){
@@ -50,7 +50,7 @@ test('eight qualitative species candidates and one provisional account candidate
  for(const p of ranked){assert.equal(p.accountAssessment.status,'provisional');assert.equal(p.accountAssessment.tier,'A');}
  for(const p of seedData.individuals.filter(p=>!ranked.includes(p)&&p.id!=='IND-0002')) assert.equal(p.accountAssessment.status,'unassessed');
 });
-test('real r41 examples calculate only per-trigger cost and never become an investment recommendation',()=>{
+test('real r42 examples calculate only per-trigger cost and never become an investment recommendation',()=>{
  for(const [id,target,count,delta] of [['IND-0002',6,0,0],['IND-0010',7,4,5132]]){
   const view=ui.buildView(ctx,{individualId:id,targetSkillLevel:target});
   assert.equal(view.result.scenario.requiredSeeds,count);
@@ -78,13 +78,13 @@ test('stock remains a dated 2026-11-01 confirmation, not a live inventory author
 test('production loads new modules before app and includes all in the new offline cache',()=>{
  const html=read('index.html'),sw=read('service-worker.js');
  for(const file of ['seed-rules.js','seed-model.js','seed-data.js','seed-ui.js']){
-  assert.ok(html.includes('./'+file+'?v=0.23-r41'));
+  assert.ok(html.includes('./'+file+'?v=0.24-r42'));
   assert.ok(html.indexOf('./'+file)<html.indexOf('./app.js'));
   assert.ok(sw.includes('"./'+file+'"'));
  }
- assert.match(sw,/pokemon-sleep-hub-v0\.23-r41/);
+ assert.match(sw,/pokemon-sleep-hub-v0\.24-r42/);
  assert.ok(html.includes('id="seedInvestmentPanel"'));
- assert.ok(html.includes('seed-ui.css?v=0.23-r41')&&sw.includes('./seed-ui.css'));
+ assert.ok(html.includes('seed-ui.css?v=0.24-r42')&&sw.includes('./seed-ui.css'));
  assert.doesNotMatch(html,/<script src="\.\/current-(facts|decisions)/);
  const app=read('app.js');assert.match(app,/金種の検討上限/);assert.match(app,/使用推奨・必要個数・投入承認ではありません/);
 });
@@ -100,5 +100,7 @@ test('special Darkrai and new Stufful never inherit ordinary seed calculations',
  assert.ok(dark.subskills.every(s=>s.name===null&&s.unlocked===false));
  assert.equal(stuff.mainSkillKey,null);assert.equal(stuff.accountAssessment.status,'unassessed');
  assert.equal(stuff.subskills[0].name,'おてつだいボーナス');
- assert.equal(seedData.individuals.length,45);
+ assert.equal(seedData.individuals.length,43);
+ assert.ok(seedData.individuals.some(p=>p.id==="IND-0055"));
+ for(const id of ["IND-0021","IND-0026","IND-0037"])assert.ok(!seedData.individuals.some(p=>p.id===id));
 });

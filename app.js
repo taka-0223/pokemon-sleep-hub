@@ -71,7 +71,7 @@ $("#revision").textContent="CURRENT "+(D.meta.revision||"—")+" · 評価モデ
 const provenanceBar=$("#factsStatus");
 if(provenanceBar){const pr=D.individuals.filter(p=>p.primaryPR!=null).length;
  provenanceBar.textContent="CURRENT "+D.meta.revision+"｜現役"+D.individuals.length+"体・PR測定"+pr+"体・RoleSlot "+D.roles.length+"件・Coverage "+(D.coverageMatrix||[]).length+"件。料理Phase 6は定性的な判断基準を採用し、供給量などの未測定値は未算出のままです。";
- provenanceBar.dataset.status=D.meta.revision==="2026-10-25-r36"?"current":"fallback";}
+ provenanceBar.dataset.status=D.meta.revision===D.meta.currentFactsRevision?"current":"fallback";}
 
 function srpFor(p){
   const s=SRP.bySpecies&&SRP.bySpecies[normalizeName(p.targetSpeciesName)];

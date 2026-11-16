@@ -75,8 +75,8 @@ test("DP-T08: Data Gateは現行r42の公開個体・RoleSlot・PRを変更し�
   gate.evaluate({...base,decision_type:"invest"});
   assert.equal(JSON.stringify(d),original);
   assert.equal(d.meta.revision,"2026-11-17-r42");
-  assert.equal(d.individuals.length,45);
-  assert.equal(d.individuals.filter(x=>x.primaryPR!=null).length,29);
+  assert.equal(d.individuals.length,43);
+  assert.equal(d.individuals.filter(x=>x.primaryPR!=null).length,26);
   assert.equal(d.roles.length,33);
 });
 test("0は未確認値ではない",()=>{

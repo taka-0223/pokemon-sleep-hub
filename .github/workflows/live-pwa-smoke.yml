@@ -50,7 +50,7 @@ jobs:
           assert '<script src="./current-decisions.js' not in html
           assert data.startswith('window.APP_DATA=') and data.endswith(';')
           d=json.loads(data[len('window.APP_DATA='):-1])
-          assert d['meta']['revision']=='2026-11-16-r42'
+          assert d['meta']['revision']=='2026-11-17-r42'
           assert d['meta']['appVersion']=='0.24'
           assert len(d['individuals'])==43 and sum(x['primaryPR'] is not None for x in d['individuals'])==26
           assert len(d['roles'])==33 and len(d['coverageMatrix'])==47 and len(d['speciesAssessments'])==63
@@ -63,7 +63,7 @@ jobs:
           assert seed['meta']['gameDataVersion']==d['meta']['gameDataVersion']
           assert len(seed['individuals'])==43 and len(seed['speciesAssessments'])==8
           assert seed['resources']['mainSkillSeed']['value']==9
-          print('LIVE HTTPS PASS: r42 / app 0.24 / 45 individuals / PR29 / 33 roles / 47 coverage / 63 role tiers / seed-v1')
+          print('LIVE HTTPS PASS: r42 / app 0.24 / 43 individuals / PR26 / 33 roles / 47 coverage / 63 role tiers / seed-v1')
           PY
       - name: Verify rendered r42 semantics with headless Chrome
         run: |
@@ -95,7 +95,7 @@ jobs:
           assert 'IND-0041' in role_section
           assert 'ヌイコグマ（おくびょう）' in roster_section
           assert 'ダークライ（てれや）' in roster_section
-          assert 'CURRENT 2026-11-16-r42' in roster
+          assert 'CURRENT 2026-11-17-r42' in roster
           assert '1. 種族の投資候補' in roster and '2. この個体の投資候補' in roster
           assert '3. 投入シナリオの比較' in roster and '使用承認なし' in roster
           assert '2026-11-01のその時点の確認値' in roster
